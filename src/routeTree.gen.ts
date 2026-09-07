@@ -10,53 +10,113 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardTestRouteImport } from './routes/dashboard/test'
+import { Route as NursingCaregiverIndexRouteImport } from './routes/nursing/caregiver/index'
+import { Route as NursingConsultationFeeIndexRouteImport } from './routes/nursing/consultation-fee/index'
+import { Route as NursingDoctorIndexRouteImport } from './routes/nursing/doctor/index'
+import { Route as NursingNurseIndexRouteImport } from './routes/nursing/nurse/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/dashboard/',
-  path: '/dashboard/',
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardTestRoute = DashboardTestRouteImport.update({
-  id: '/dashboard/test',
-  path: '/dashboard/test',
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const NursingCaregiverIndexRoute = NursingCaregiverIndexRouteImport.update({
+  id: '/nursing/caregiver/',
+  path: '/nursing/caregiver/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NursingConsultationFeeIndexRoute =
+  NursingConsultationFeeIndexRouteImport.update({
+    id: '/nursing/consultation-fee/',
+    path: '/nursing/consultation-fee/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const NursingDoctorIndexRoute = NursingDoctorIndexRouteImport.update({
+  id: '/nursing/doctor/',
+  path: '/nursing/doctor/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NursingNurseIndexRoute = NursingNurseIndexRouteImport.update({
+  id: '/nursing/nurse/',
+  path: '/nursing/nurse/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard/test': typeof DashboardTestRoute
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/nursing/caregiver/': typeof NursingCaregiverIndexRoute
+  '/nursing/consultation-fee/': typeof NursingConsultationFeeIndexRoute
+  '/nursing/doctor/': typeof NursingDoctorIndexRoute
+  '/nursing/nurse/': typeof NursingNurseIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard/test': typeof DashboardTestRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/nursing/caregiver': typeof NursingCaregiverIndexRoute
+  '/nursing/consultation-fee': typeof NursingConsultationFeeIndexRoute
+  '/nursing/doctor': typeof NursingDoctorIndexRoute
+  '/nursing/nurse': typeof NursingNurseIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard/test': typeof DashboardTestRoute
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/nursing/caregiver/': typeof NursingCaregiverIndexRoute
+  '/nursing/consultation-fee/': typeof NursingConsultationFeeIndexRoute
+  '/nursing/doctor/': typeof NursingDoctorIndexRoute
+  '/nursing/nurse/': typeof NursingNurseIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard/test' | '/dashboard/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/dashboard/'
+    | '/nursing/caregiver/'
+    | '/nursing/consultation-fee/'
+    | '/nursing/doctor/'
+    | '/nursing/nurse/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard/test' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard/test' | '/dashboard/'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/nursing/caregiver'
+    | '/nursing/consultation-fee'
+    | '/nursing/doctor'
+    | '/nursing/nurse'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/dashboard/'
+    | '/nursing/caregiver/'
+    | '/nursing/consultation-fee/'
+    | '/nursing/doctor/'
+    | '/nursing/nurse/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardTestRoute: typeof DashboardTestRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  NursingCaregiverIndexRoute: typeof NursingCaregiverIndexRoute
+  NursingConsultationFeeIndexRoute: typeof NursingConsultationFeeIndexRoute
+  NursingDoctorIndexRoute: typeof NursingDoctorIndexRoute
+  NursingNurseIndexRoute: typeof NursingNurseIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,27 +128,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/': {
-      id: '/dashboard/'
+    '/dashboard': {
+      id: '/dashboard'
       path: '/dashboard'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/test': {
-      id: '/dashboard/test'
-      path: '/dashboard/test'
-      fullPath: '/dashboard/test'
-      preLoaderRoute: typeof DashboardTestRouteImport
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/nursing/caregiver/': {
+      id: '/nursing/caregiver/'
+      path: '/nursing/caregiver'
+      fullPath: '/nursing/caregiver/'
+      preLoaderRoute: typeof NursingCaregiverIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nursing/consultation-fee/': {
+      id: '/nursing/consultation-fee/'
+      path: '/nursing/consultation-fee'
+      fullPath: '/nursing/consultation-fee/'
+      preLoaderRoute: typeof NursingConsultationFeeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nursing/doctor/': {
+      id: '/nursing/doctor/'
+      path: '/nursing/doctor'
+      fullPath: '/nursing/doctor/'
+      preLoaderRoute: typeof NursingDoctorIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nursing/nurse/': {
+      id: '/nursing/nurse/'
+      path: '/nursing/nurse'
+      fullPath: '/nursing/nurse/'
+      preLoaderRoute: typeof NursingNurseIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface DashboardRouteRouteChildren {
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardTestRoute: DashboardTestRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  NursingCaregiverIndexRoute: NursingCaregiverIndexRoute,
+  NursingConsultationFeeIndexRoute: NursingConsultationFeeIndexRoute,
+  NursingDoctorIndexRoute: NursingDoctorIndexRoute,
+  NursingNurseIndexRoute: NursingNurseIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

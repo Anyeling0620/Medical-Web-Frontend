@@ -1,56 +1,112 @@
-import {createFileRoute} from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ArrowRight } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
+import { login } from '../api/auth'
 import homeImage from '../static/home.png'
-import {ArrowRight} from "lucide-react";
-import {useState} from "react";
 
-export const Route = createFileRoute('/')({component: Home})
+export const Route = createFileRoute('/')({
+    component: Home,
+})
 
 function Home() {
+    const navigate = useNavigate()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
-    const handle = (username, password) => {
-        if(username === "" || password.length < 8 || username.length > 20) {
-            alert("用户名不能为空或超过20个字符\n密码长度不能低于8位")
-        } else {
-            console.log(username, password)
+    const [errorMessage, setErrorMessage] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+
+        const normalizedUsername = username.trim()
+
+        if (
+            normalizedUsername === '' ||
+            normalizedUsername.length > 20 ||
+            password.length < 8
+        ) {
+            setErrorMessage('用户名不能为空或超过20个字符，密码长度不能低于8位')
+            return
+        }
+
+        setErrorMessage('')
+        setIsSubmitting(true)
+
+        try {
+            const response = await login({
+                username: normalizedUsername,
+                password,
+            })
+
+            console.log('登录成功：', response)
+            localStorage.setItem('username', JSON.stringify(response.user.username))
+            localStorage.setItem('permissions', JSON.stringify(response.permissions[0]))
+
+            await navigate({
+                to: '/dashboard',
+            })
+        } catch {
+            // 当前 ajax 保持原样时，401 会被转换为普通 Error，
+            // 无法读取后端 { error: '没有这个用户' } 的 error 字段。
+            setErrorMessage('没有这个用户或密码错误')
+        } finally {
+            setIsSubmitting(false)
         }
     }
+
     return (
-        <div className={"w-full h-screen bg-blue-500 flex flex-col justify-center items-center"}>
-            <div
-                className={"h-[70%] w-[60%] bg-gray-200 border-none rounded-2xl text-center p-16 grid grid-cols-2 gap-4 shadow-2xl"}>
-                <div className={"w-full h-full flex flex-col justify-center items-center gap-4"}>
-                    <img src={homeImage} alt={"主页"}></img>
-                    <h1 className={"text-xl"}>医疗系统管理面板</h1>
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-blue-500">
+            <div className="grid h-[70%] w-[60%] grid-cols-2 gap-4 rounded-2xl border-none bg-gray-200 p-16 text-center shadow-2xl">
+                <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+                    <img src={homeImage} alt="主页" />
+                    <h1 className="text-xl">医疗系统管理面板</h1>
                 </div>
-                <div className={"w-full h-full flex flex-col justify-center items-center gap-6"}>
-                    <div className={"flex items-center gap-2 w-full max-w-md"}>
-                        {/*<h2 className={"whitespace-nowrap"}>用户名: </h2>*/}
+
+                <form
+                    className="flex h-full w-full flex-col items-center justify-center gap-6"
+                    onSubmit={handleSubmit}
+                >
+                    <div className="flex w-full max-w-md items-center gap-2">
                         <input
-                            className={"w-full h-8 px-4 py-2 border-gray-400 border-b focus:outline-none focus:border-indigo-800 transition"}
-                            placeholder={"输入管理员账号用户名"} type={"text"} value={username}
-                            onChange={(e) => setUsername(e.target.value)}></input>
+                            className="h-8 w-full border-b border-gray-400 px-4 py-2 transition focus:border-indigo-800 focus:outline-none"
+                            placeholder="输入管理员账号用户名"
+                            type="text"
+                            value={username}
+                            onChange={(event) => setUsername(event.target.value)}
+                            disabled={isSubmitting}
+                        />
                     </div>
 
-                    <div className={"flex items-center gap-2 w-full max-w-md"}>
-                        {/*<h2 className={"whitespace-nowrap"}>密码:    </h2>*/}
+                    <div className="flex w-full max-w-md items-center gap-2">
                         <input
-                            className={"w-full h-8 px-4 py-2 border-gray-400 border-b focus:outline-none focus:border-indigo-800 transition"}
-                            placeholder={"输入管理员账号密码"} type={"password"} value={password}
-                            onChange={(e) => setPassword(e.target.value)}></input>
+                            className="h-8 w-full border-b border-gray-400 px-4 py-2 transition focus:border-indigo-800 focus:outline-none"
+                            placeholder="输入管理员账号密码"
+                            type="password"
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            disabled={isSubmitting}
+                        />
                     </div>
 
-                    <div className={"flex items-center gap-2 w-full max-w-md"}>
+                    {errorMessage ? (
+                        <p className="w-full max-w-md text-left text-sm text-red-600">
+                            {errorMessage}
+                        </p>
+                    ) : null}
+
+                    <div className="flex w-full max-w-md items-center gap-2">
                         <button
-                            className={"w-full h-full flex flex-col-1 justify-between items-center bg-indigo-600 px-6 py-4"}
-                            onClick={() => handle(username, password)}
+                            className="flex h-full w-full justify-between bg-indigo-600 px-6 py-4 disabled:opacity-60"
+                            type="submit"
+                            disabled={isSubmitting}
                         >
-                            <p className={"text-white"} >登录</p>
-                            <ArrowRight className={"text-white"}></ArrowRight>
+              <span className="text-white">
+                {isSubmitting ? '登录中...' : '登录'}
+              </span>
+                            <ArrowRight className="text-white" />
                         </button>
                     </div>
-
-                </div>
+                </form>
             </div>
         </div>
     )
