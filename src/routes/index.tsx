@@ -18,7 +18,7 @@ function Home() {
     return (
         <div className={"w-full h-screen bg-blue-500 flex flex-col justify-center items-center"}>
             <div
-                className={"h-[70%] w-[60%] bg-gray-200 border-none rounded-2xl text-center p-16 grid grid-cols-2 gap-4"}>
+                className={"h-[70%] w-[60%] bg-gray-200 border-none rounded-2xl text-center p-16 grid grid-cols-2 gap-4 shadow-2xl"}>
                 <div className={"w-full h-full flex flex-col justify-center items-center gap-4"}>
                     <img src={homeImage} alt={"主页"}></img>
                     <h1 className={"text-xl"}>医疗系统管理面板</h1>
