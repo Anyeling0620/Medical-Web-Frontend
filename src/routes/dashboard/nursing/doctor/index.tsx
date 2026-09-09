@@ -10,7 +10,13 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { type Doctor, getDoctorsList } from "@/api/getDoctorsList.ts";
+import {
+	type Doctor,
+	type DoctorStatus,
+	getDoctorsList,
+	type PagedResult,
+} from "@/api/doctors";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 export const Route = createFileRoute("/dashboard/nursing/doctor/")({
 	component: DoctorListPage,
@@ -18,53 +24,31 @@ export const Route = createFileRoute("/dashboard/nursing/doctor/")({
 
 const PAGE_SIZE = 10;
 
-type DoctorListResponse =
-	| Doctor[]
-	| {
-			data?: Doctor[] | { list?: Doctor[]; records?: Doctor[]; total?: number };
-			list?: Doctor[];
-			records?: Doctor[];
-			total?: number;
-			totalCount?: number;
-	  };
-
-function normalizeResponse(response: DoctorListResponse) {
-	if (Array.isArray(response))
-		return { doctors: response, total: response.length };
-	const nested =
-		response.data && !Array.isArray(response.data) ? response.data : undefined;
-	const doctors = Array.isArray(response.data)
-		? response.data
-		: (response.list ??
-			response.records ??
-			nested?.list ??
-			nested?.records ??
-			[]);
-	return {
-		doctors,
-		total:
-			response.total ?? response.totalCount ?? nested?.total ?? doctors.length,
-	};
-}
+// doctor.status 展示映射：字符串语义来自规范 11.2（数据库 1=ACTIVE、2=RESIGNED、3=RETIRED、4=HIDDEN）。
+const STATUS_META: Record<DoctorStatus, { label: string; badge: string }> = {
+	ACTIVE: { label: "正常", badge: "bg-emerald-50 text-emerald-700" },
+	RESIGNED: { label: "离职", badge: "bg-slate-100 text-slate-500" },
+	RETIRED: { label: "退休", badge: "bg-slate-100 text-slate-500" },
+	HIDDEN: { label: "隐藏", badge: "bg-amber-50 text-amber-700" },
+};
 
 function DoctorListPage() {
 	const [page, setPage] = useState(1);
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const [isFolded, setIsFolded] = useState(false);
+
+	// GET /api/v1/catalog/doctors 返回规范 1.1 的统一分页结构 { items, page, pageSize, total }。
 	const doctorsQuery = useQuery({
 		queryKey: ["doctors", page, PAGE_SIZE],
-		queryFn: () =>
+		queryFn: (): Promise<PagedResult<Doctor>> =>
 			getDoctorsList({
 				page,
-				length: PAGE_SIZE,
-				status: 1,
-			}) as Promise<DoctorListResponse>,
+				pageSize: PAGE_SIZE,
+				status: "ACTIVE",
+			}),
 	});
-	const result = doctorsQuery.data
-		? normalizeResponse(doctorsQuery.data)
-		: null;
-	const doctors = result?.doctors ?? [];
-	const total = result?.total ?? 0;
+	const doctors: Doctor[] = doctorsQuery.data?.items ?? [];
+	const total = doctorsQuery.data?.total ?? 0;
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 	const allVisibleSelected =
 		doctors.length > 0 && doctors.every((doctor) => selectedIds.has(doctor.id));
@@ -109,7 +93,6 @@ function DoctorListPage() {
 					</div>
 
 					<div className={"flex flex-wrap items-end gap-3 h-16"}>
-
 						<button
 							type="button"
 							className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
@@ -156,7 +139,7 @@ function DoctorListPage() {
 					{!isFolded && (
 						<>
 							<div className="overflow-x-auto">
-								<table className="min-w-[1100px] w-full text-left text-sm">
+								<table className="min-w-275 w-full text-left text-sm">
 									<thead className="bg-slate-50 text-xs font-semibold text-slate-500">
 										<tr>
 											<th className="w-12 px-4 py-3">
@@ -170,72 +153,70 @@ function DoctorListPage() {
 											</th>
 											<SortableHeader label="姓名" />
 											<SortableHeader label="性别" />
-											<th className="px-4 py-3">联系电话</th>
 											<th className="px-4 py-3">毕业院校</th>
 											<SortableHeader label="学位" />
 											<SortableHeader label="职位" />
-											<th className="px-4 py-3">所属科室</th>
-											<th className="px-4 py-3">亚专科</th>
 											<th className="px-4 py-3">推荐</th>
 											<th className="px-4 py-3">状态</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-slate-100">
 										{doctorsQuery.isLoading && (
-											<TableMessage colSpan={11}>
+											<TableMessage colSpan={8}>
 												正在加载医生信息...
 											</TableMessage>
 										)}
 										{doctorsQuery.isError && (
-											<TableMessage colSpan={11}>
-												医生信息加载失败，请稍后重试
+											<TableMessage colSpan={8}>
+												{getApiErrorMessage(doctorsQuery.error)}
 											</TableMessage>
 										)}
 										{!doctorsQuery.isLoading &&
 											!doctorsQuery.isError &&
 											doctors.length === 0 && (
-												<TableMessage colSpan={11}>暂无医生数据</TableMessage>
+												<TableMessage colSpan={8}>暂无医生数据</TableMessage>
 											)}
-										{doctors.map((doctor) => (
-											<tr
-												key={doctor.id}
-												className="transition hover:bg-blue-50/40"
-											>
-												<td className="px-4 py-3">
-													<input
-														type="checkbox"
-														checked={selectedIds.has(doctor.id)}
-														onChange={() => toggleSelected(doctor.id)}
-														aria-label={`选择${doctor.name}`}
-														className="h-4 w-4 rounded border-slate-300 accent-blue-600"
-													/>
-												</td>
-												<td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
-													{doctor.name || "-"}
-												</td>
-												<td className="px-4 py-3">{doctor.sex || "-"}</td>
-												<td className="px-4 py-3">{doctor.tel || "-"}</td>
-												<td className="px-4 py-3">{doctor.school || "-"}</td>
-												<td className="px-4 py-3">{doctor.degree || "-"}</td>
-												<td className="px-4 py-3">{doctor.job || "-"}</td>
-												<td className="px-4 py-3">{doctor.deptName || "-"}</td>
-												<td className="px-4 py-3">{doctor.subName || "-"}</td>
-												<td className="px-4 py-3">
-													{doctor.recommended ? (
-														<span className="text-emerald-600">是</span>
-													) : (
-														<span className="text-slate-400">否</span>
-													)}
-												</td>
-												<td className="px-4 py-3">
-													<span
-														className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${doctor.status === 1 ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-													>
-														{doctor.status === 1 ? "正常" : "停用"}
-													</span>
-												</td>
-											</tr>
-										))}
+										{doctors.map((doctor) => {
+											const statusMeta =
+												STATUS_META[doctor.status] ?? STATUS_META.HIDDEN;
+											return (
+												<tr
+													key={doctor.id}
+													className="transition hover:bg-blue-50/40"
+												>
+													<td className="px-4 py-3">
+														<input
+															type="checkbox"
+															checked={selectedIds.has(doctor.id)}
+															onChange={() => toggleSelected(doctor.id)}
+															aria-label={`选择${doctor.name}`}
+															className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+														/>
+													</td>
+													<td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">
+														{doctor.name || "-"}
+													</td>
+													<td className="px-4 py-3">{doctor.sex || "-"}</td>
+													<td className="px-4 py-3">{doctor.school || "-"}</td>
+													<td className="px-4 py-3">{doctor.degree || "-"}</td>
+													<td className="px-4 py-3">{doctor.job || "-"}</td>
+													<td className="px-4 py-3">
+														{doctor.recommended ? (
+															<span className="text-emerald-600">是</span>
+														) : (
+															<span className="text-slate-400">否</span>
+														)}
+													</td>
+													<td className="px-4 py-3">
+														<span
+															className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusMeta.badge}`}
+														>
+															{statusMeta.label}
+														</span>
+													</td>
+												</tr>
+											);
+										})}
 									</tbody>
 								</table>
 							</div>
