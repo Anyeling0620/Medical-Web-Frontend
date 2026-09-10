@@ -51,19 +51,26 @@ const menuItems: MenuItem[] = [
 		id: "nursing",
 		icon: Stethoscope,
 		label: "医护管理",
-		// 仅保留有真实后端与页面的医生管理，其余占位页仅从菜单隐藏
+		// 医护管理保留 4 个子菜单：医生/护士/护工管理与诊费设置。
+		// 医生管理已有真实后端与页面；其余子菜单当前无调用历史，仅保留入口占位。
 		submenu: [
-			{
-				id: "doctor",
-				label: "医生管理",
-			},
+			{ id: "doctor", label: "医生管理" },
+			{ id: "nurse", label: "护士管理" },
+			{ id: "caregiver", label: "护工管理" },
+			{ id: "consultation-fee", label: "诊费设置" },
 		],
 	},
 	{
 		id: "visiting",
 		icon: BarChart3,
 		label: "出诊管理",
-		submenu: [{ id: "default", label: "Revenue" }],
+		// 出诊管理子菜单：门诊日程表 / 医生出诊表 / 视频问诊。
+		// 三者当前无前端调用历史，仅保留入口占位，后续接入对应接口。
+		submenu: [
+			{ id: "schedule", label: "门诊日程表" },
+			{ id: "doctor-visits", label: "医生出诊表" },
+			{ id: "video-consultation", label: "视频问诊" },
+		],
 	},
 	{
 		id: "setting",
