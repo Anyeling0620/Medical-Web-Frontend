@@ -1,6 +1,7 @@
 // 接口规范 5（排班域 /api/v1/schedule）与 12.3（JSON 示例）：出诊计划与出诊时间段访问层。
 // 查询需要 SCHEDULE:SELECT（或 ROOT），写操作需要 SCHEDULE:WRITE（或 ROOT）。
-// 规范 1.5：POST 创建接口必须携带 Idempotency-Key；PATCH 需携带 If-Match 做乐观并发。
+// 规范 1.5：POST 创建接口必须携带 Idempotency-Key。
+// 项目约定：明确不做 If-Match 乐观并发（后端不下发 etag，PATCH 也不校验），写操作只带幂等键。
 import { ajax } from "../lib/api";
 
 export type SortOrder = "asc" | "desc";
@@ -19,8 +20,6 @@ export interface SchedulePagedResult<T> {
 // 出诊时间段（doctor_work_plan_schedule）：slot 是既有整数时段标识，契约不赋予具体时间语义。
 export interface ScheduleSlot {
 	id: number;
-	// 创建响应不返回 etag（规范 5.2/5.5），仅 GET 返回，故为可选字段。
-	etag?: string;
 	workPlanId: number;
 	slot: number;
 	maximum: number;
@@ -31,8 +30,6 @@ export interface ScheduleSlot {
 // 出诊计划（doctor_work_plan）：used/remaining 由服务端计算，remaining = maximum - used。
 export interface WorkPlan {
 	id: number;
-	// 创建响应不返回 etag（规范 5.2）；列表/更新响应返回，用于 PATCH 的 If-Match。
-	etag?: string;
 	doctorId: number;
 	subdepartmentId: number;
 	// 规范 1.1：date 按业务语义序列化为 YYYY-MM-DD。
@@ -95,7 +92,7 @@ export function getSchedulePlans(
 	});
 }
 
-// POST /api/v1/schedule/plans：创建出诊计划，成功返回 201 与资源对象（不含 etag）。
+// POST /api/v1/schedule/plans：创建出诊计划，成功返回 201 与资源对象。
 // 409 SCHEDULE_PLAN_EXISTS 表示同一医生/子科室/日期已存在计划。
 export function createSchedulePlan(
 	body: CreatePlanRequest,
@@ -110,20 +107,18 @@ export function createSchedulePlan(
 }
 
 // PATCH /api/v1/schedule/plans/{planId}：仅允许修改 maximum（规范 5.3）。
-// 成功返回最新资源与新 etag；409 SCHEDULE_CAPACITY_INVALID / SCHEDULE_PLAN_LOCKED / SCHEDULE_CONFLICT。
-// etag 存在时按规范 1.5 作为 If-Match 发送，缺失则跳过（后端尚未下发 etag 的兼容路径）。
+// 成功返回最新资源；409 SCHEDULE_CAPACITY_INVALID / SCHEDULE_PLAN_LOCKED / SCHEDULE_CONFLICT。
+// 项目约定不做 If-Match：不发送 If-Match 头，仅依赖幂等键。
 export function updateSchedulePlanMaximum(params: {
 	planId: number;
 	maximum: number;
-	etag?: string;
 	idempotencyKey?: string;
 }): Promise<WorkPlan> {
-	const { planId, maximum, etag, idempotencyKey } = params;
+	const { planId, maximum, idempotencyKey } = params;
 	return ajax<WorkPlan>({
 		url: `/schedule/plans/${planId}`,
 		method: "PATCH",
 		data: { maximum },
-		ifMatch: etag,
 		idempotencyKey,
 	});
 }
@@ -146,7 +141,7 @@ export function getSchedulePlanSlots(planId: number): Promise<ScheduleSlot[]> {
 	});
 }
 
-// POST /api/v1/schedule/plans/{planId}/slots：新增时段，成功 201（创建响应不返回 etag）。
+// POST /api/v1/schedule/plans/{planId}/slots：新增时段，成功 201。
 // 同一计划下 slot 重复返回 409 SCHEDULE_SLOT_EXISTS。
 export function createSchedulePlanSlot(
 	planId: number,
@@ -163,19 +158,18 @@ export function createSchedulePlanSlot(
 
 // PATCH /api/v1/schedule/slots/{slotId}：仅允许修改 maximum（规范 5.5）。
 // 409 SCHEDULE_CAPACITY_INVALID（小于已挂号数）/ SCHEDULE_SLOT_LOCKED（计划已开始或已有挂号）/
-// SCHEDULE_CONFLICT（If-Match 快照不一致）。
+// SCHEDULE_CONFLICT（服务端并发冲突）。
+// 项目约定不做 If-Match：不发送 If-Match 头，仅依赖幂等键。
 export function updateScheduleSlotMaximum(params: {
 	slotId: number;
 	maximum: number;
-	etag?: string;
 	idempotencyKey?: string;
 }): Promise<ScheduleSlot> {
-	const { slotId, maximum, etag, idempotencyKey } = params;
+	const { slotId, maximum, idempotencyKey } = params;
 	return ajax<ScheduleSlot>({
 		url: `/schedule/slots/${slotId}`,
 		method: "PATCH",
 		data: { maximum },
-		ifMatch: etag,
 		idempotencyKey,
 	});
 }

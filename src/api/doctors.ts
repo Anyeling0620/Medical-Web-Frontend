@@ -97,6 +97,57 @@ export function getDoctorsList(params: DoctorSearchParams = {}) {
 	});
 }
 
+// 需要展示姓名/进入筛选下拉的医生状态：接口 status 缺省为 ACTIVE，
+// 已离职、退休医生的历史排班仍要显示姓名，因此必须显式按状态分别查询后合并。
+// HIDDEN（隐藏医生）不对管理端展示，不纳入。
+const VISIBLE_DOCTOR_STATUSES: DoctorStatus[] = [
+	"ACTIVE",
+	"RESIGNED",
+	"RETIRED",
+];
+
+// 剩余分页的并发上限：调用方若省略 pageSize（缺省 10），页数会变多，
+// 分批请求可避免一次性打出过多并发请求。
+const PAGE_BATCH_SIZE = 5;
+
+// GET /api/v1/catalog/doctors 全量拉取：先取第 1 页，再按响应回显的 pageSize 取完剩余页。
+// 目的：单页最多 100 条（规范 1.4），只取第 1 页会让超出上限的医生退化成「医生 #id」。
+// pageSize 沿用调用方（或接口默认）的值，不做调整。
+// 说明：始终从第 1 页开始，params 中的 page 会被忽略。
+export async function getAllDoctors(
+	params: DoctorSearchParams = {},
+): Promise<Doctor[]> {
+	const first = await getDoctorsList({ ...params, page: 1 });
+	// 以响应回显的分页参数为准，避免请求参数被服务端调整后算错页数。
+	const pageSize = first.pageSize > 0 ? first.pageSize : first.items.length;
+	const totalPages = pageSize > 0 ? Math.ceil(first.total / pageSize) : 1;
+	if (totalPages <= 1) return first.items;
+
+	const items = [...first.items];
+	for (let start = 2; start <= totalPages; start += PAGE_BATCH_SIZE) {
+		const batch = Array.from(
+			{ length: Math.min(PAGE_BATCH_SIZE, totalPages - start + 1) },
+			(_, index) => getDoctorsList({ ...params, page: start + index }),
+		);
+		const results = await Promise.all(batch);
+		for (const result of results) items.push(...result.items);
+	}
+	return items;
+}
+
+// 全量拉取「可见医生」：ACTIVE + RESIGNED + RETIRED 三种状态分别分页取完后合并。
+// 用于医生姓名映射与筛选下拉，保证已离职/退休医生也能查到、姓名不缺失。
+export async function getAllDoctorsIncludingInactive(
+	params: DoctorSearchParams = {},
+): Promise<Doctor[]> {
+	const results = await Promise.all(
+		VISIBLE_DOCTOR_STATUSES.map((status) =>
+			getAllDoctors({ ...params, status }),
+		),
+	);
+	return results.flat();
+}
+
 export function getDoctorOptions() {
 	return ajax<DoctorOptions>({
 		url: "/catalog/doctors/options",

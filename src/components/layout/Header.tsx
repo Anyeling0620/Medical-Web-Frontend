@@ -8,6 +8,7 @@ import {
 	Settings,
 	Sun,
 } from "lucide-react";
+import { useStoredUser } from "@/lib/stored-user";
 import doctorImage from "@/static/doctor.png";
 
 type HeaderProps = {
@@ -15,6 +16,10 @@ type HeaderProps = {
 };
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
+	// 用户展示信息改为水合后读取：SSR 阶段没有 localStorage，
+	// 渲染期直接读取会抛错，并导致 /dashboard/** 整体回退为客户端渲染。
+	const { username, permissions } = useStoredUser();
+
 	const keepLightTheme = () => {
 		document.documentElement.classList.remove("dark");
 	};
@@ -119,11 +124,11 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 
 						<div className="hidden @min-[640px]:block max-w-32 break-words">
 							<p className="text-sm font-medium text-slate-500">
-								{JSON.parse(localStorage.getItem("username") as string)}
+								{username}
 							</p>
 
 							<p className="text-xs font-medium text-slate-500">
-								{JSON.parse(localStorage.getItem("permissions") as string)}
+								{permissions}
 							</p>
 						</div>
 
