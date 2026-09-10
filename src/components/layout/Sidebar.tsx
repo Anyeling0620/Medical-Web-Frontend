@@ -12,6 +12,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { useState } from "react";
+import { useStoredUser } from "@/lib/stored-user";
 import doctorImage from "@/static/doctor.png";
 
 type SubmenuItem = {
@@ -85,20 +86,12 @@ type SidebarProps = {
 	onToggle: () => void;
 };
 
-// 从 localStorage 读取 JSON 字符串：key 为空或解析失败时返回兜底文案，避免整个侧边栏崩溃。
-function readStoredString(key: string, fallback: string): string {
-	try {
-		const raw = localStorage.getItem(key);
-		if (!raw) return fallback;
-		const parsed = JSON.parse(raw) as unknown;
-		return typeof parsed === "string" ? parsed : fallback;
-	} catch {
-		return fallback;
-	}
-}
-
 export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 	const navigate = useNavigate();
+
+	// 用户展示信息与 Header 一致改为水合后读取：SSR 阶段读取 localStorage 拿不到值，
+	// 渲染期读取还会造成服务端与客户端首屏不一致（hydration 报错）。
+	const { username, permissions } = useStoredUser();
 
 	const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -271,11 +264,11 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 
 						<div className="min-w-0 flex-1">
 							<p className="truncate text-sm font-medium text-slate-800">
-								{readStoredString("username", "管理员")}
+								{username || "管理员"}
 							</p>
 
 							<p className="truncate text-xs text-slate-500">
-								{readStoredString("permissions", "—")}
+								{permissions || "—"}
 							</p>
 						</div>
 					</div>
