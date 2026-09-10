@@ -92,6 +92,34 @@ export function getSchedulePlans(
 	});
 }
 
+// 全量拉取的分批并发上限：与 src/api/doctors.ts 的 getAllDoctors 保持同一策略，
+// 避免页数较多时一次性打出过多并发请求。
+const PLAN_PAGE_BATCH_SIZE = 5;
+
+// GET /api/v1/schedule/plans 全量拉取：先取第 1 页，再按响应回显的 pageSize 取完剩余页。
+// 目的：规范 1.4 规定 pageSize 上限为 100，而 Dashboard 的统计必须覆盖窗口内的全部计划，
+// 只取第 1 页会在计划数超过 100 时把计划数、号源与利用率整体算小。
+// 说明：始终从第 1 页开始，params 中的 page 会被忽略。
+export async function getAllSchedulePlans(
+	params: PlanSearchParams = {},
+): Promise<WorkPlan[]> {
+	const first = await getSchedulePlans({ ...params, page: 1 });
+	// 以响应回显的分页参数为准，避免请求参数被服务端调整后算错页数。
+	const pageSize = first.pageSize > 0 ? first.pageSize : first.items.length;
+	const totalPages = pageSize > 0 ? Math.ceil(first.total / pageSize) : 1;
+	if (totalPages <= 1) return first.items;
+
+	const items = [...first.items];
+	for (let start = 2; start <= totalPages; start += PLAN_PAGE_BATCH_SIZE) {
+		const batch = Array.from(
+			{ length: Math.min(PLAN_PAGE_BATCH_SIZE, totalPages - start + 1) },
+			(_, index) => getSchedulePlans({ ...params, page: start + index }),
+		);
+		const results = await Promise.all(batch);
+		for (const result of results) items.push(...result.items);
+	}
+	return items;
+}
 // POST /api/v1/schedule/plans：创建出诊计划，成功返回 201 与资源对象。
 // 409 SCHEDULE_PLAN_EXISTS 表示同一医生/子科室/日期已存在计划。
 export function createSchedulePlan(
