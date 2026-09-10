@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
@@ -24,6 +25,11 @@ import { Route as DashboardNursingDoctorIndexRouteImport } from './routes/dashbo
 import { Route as DashboardNursingDoctorDoctorIdRouteImport } from './routes/dashboard/nursing/doctor/$doctorId'
 import { Route as DashboardNursingNurseIndexRouteImport } from './routes/dashboard/nursing/nurse/index'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -107,6 +113,7 @@ const DashboardNursingNurseIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/nursing/nurse/': typeof DashboardNursingNurseIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/login': typeof LoginIndexRoute
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
@@ -139,6 +147,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/login/': typeof LoginIndexRoute
@@ -157,6 +166,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/dashboard'
     | '/dashboard/'
     | '/login/'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/dashboard/nursing/nurse/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/dashboard'
     | '/login'
     | '/dashboard/visiting/doctor-visits'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/dashboard/nursing/nurse'
   id:
     | '__root__'
+    | '/'
     | '/dashboard'
     | '/dashboard/'
     | '/login/'
@@ -205,12 +217,20 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   LoginIndexRoute: typeof LoginIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -351,6 +371,7 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   LoginIndexRoute: LoginIndexRoute,
 }

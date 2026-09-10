@@ -1,9 +1,15 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
+import { checkRouteGuard } from "@/lib/auth-session";
 
 export const Route = createFileRoute("/dashboard")({
+	// 未登录访问 /dashboard 及其子路由时统一跳转 /login。
+	beforeLoad: async ({ location }) => {
+		const target = await checkRouteGuard(location.pathname);
+		if (target) throw redirect({ to: target });
+	},
 	component: AdminLayout,
 });
 

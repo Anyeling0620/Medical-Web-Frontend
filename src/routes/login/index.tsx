@@ -1,11 +1,17 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { login } from "@/api/auth";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { checkRouteGuard, setSession } from "@/lib/auth-session";
 import homeImage from "@/static/home.png";
 
 export const Route = createFileRoute("/login/")({
+	// 已登录用户访问 /login 时不再展示登录表单，直接进入 /dashboard。
+	beforeLoad: async ({ location }) => {
+		const target = await checkRouteGuard(location.pathname);
+		if (target) throw redirect({ to: target });
+	},
 	component: Home,
 });
 
@@ -39,12 +45,8 @@ function Home() {
 				password,
 			});
 
-			// 登录成功仅缓存展示用数据，Header/Sidebar 依赖这两个 localStorage key。
-			localStorage.setItem("username", JSON.stringify(response.user.username));
-			localStorage.setItem(
-				"permissions",
-				JSON.stringify(response.permissions[0]),
-			);
+			// 登录成功记录会话：写入内存缓存（供路由守卫复用）与 Header/Sidebar 依赖的展示数据。
+			setSession(response);
 
 			await navigate({
 				to: "/dashboard",
