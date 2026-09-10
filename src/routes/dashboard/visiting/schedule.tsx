@@ -15,9 +15,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	type DepartmentOption,
+	getAllDoctors,
+	getAllDoctorsIncludingInactive,
 	getDoctorDetail,
 	getDoctorOptions,
-	getDoctorsList,
 	type SubdepartmentOption,
 } from "@/api/doctors";
 import {
@@ -304,20 +305,19 @@ function ScheduleMatrixPage() {
 	const subdepartments: SubdepartmentOption[] =
 		optionsQuery.data?.subdepartments ?? [];
 
-	// GET /api/v1/catalog/doctors：pageSize 100 的在职医生列表，用于 doctorId -> 姓名映射。
+	// GET /api/v1/catalog/doctors：用于 doctorId -> 姓名映射；全量拉取（分页取完）且包含离职/退休医生，
+	// 否则医生总数超过单页上限、或医生已离职时会退化成「医生 #id」。
 	// 刻意不按科室过滤：矩阵单元格要展示当前所有计划的医生姓名，而筛选栏的科室是「点击查询才生效」的
 	// 草稿条件；若跟随草稿条件切换查询，映射会短暂为空，已渲染的姓名将退化成「医生 #id」。
 	const doctorsQuery = useQuery({
 		queryKey: ["schedule-doctor-map"],
-		queryFn: () => getDoctorsList({ pageSize: MATRIX_PAGE_SIZE }),
+		queryFn: () =>
+			getAllDoctorsIncludingInactive({ pageSize: MATRIX_PAGE_SIZE }),
 	});
 	const doctorNames = useMemo(
 		() =>
 			new Map(
-				(doctorsQuery.data?.items ?? []).map((doctor) => [
-					doctor.id,
-					doctor.name,
-				]),
+				(doctorsQuery.data ?? []).map((doctor) => [doctor.id, doctor.name]),
 			),
 		[doctorsQuery.data],
 	);
@@ -829,18 +829,21 @@ function CreatePlanModal({
 	const [formError, setFormError] = useState("");
 	const [submitting, setSubmitting] = useState(false);
 
-	// GET /api/v1/catalog/doctors：医生下拉按「科室部门」过滤（原型：先选科室再选医生）。
+	// GET /api/v1/catalog/doctors：新增出诊计划的医生下拉，按「科室部门」过滤（原型：先选科室再选医生）。
 	// 未选择科室时不发起请求，避免展示与所选科室无关的医生。
+	// 只提供在职（ACTIVE，数据库 status=1）医生：非在职医生不能新增出诊计划；
+	// 并分页取全量，避免科室医生超过单页上限时选不到目标医生。
 	const doctorsQuery = useQuery({
 		queryKey: ["schedule-form-doctors", departmentId],
 		queryFn: () =>
-			getDoctorsList({
+			getAllDoctors({
 				departmentId: Number(departmentId),
+				status: "ACTIVE",
 				pageSize: MATRIX_PAGE_SIZE,
 			}),
 		enabled: Number(departmentId) > 0,
 	});
-	const doctors = doctorsQuery.data?.items ?? [];
+	const doctors = doctorsQuery.data ?? [];
 	// 规范 1.5：计划创建的幂等键在弹窗打开（组件挂载）时生成一次并存入 ref，
 	// 之后无论双击还是失败重试都复用同一个 key，保证不会重复创建计划。
 	const planKeyRef = useRef("");
@@ -893,6 +896,12 @@ function CreatePlanModal({
 		}
 		if (!doctorId) {
 			setFormError("请选择出诊医生");
+			return;
+		}
+		// 兜底校验：只有在职（status=ACTIVE，数据库 1）医生才能新增出诊计划。
+		// 下拉已只提供在职医生，这里再校验一次，避免下拉数据过期或选择结果被外部改写。
+		if (!doctors.some((doctor) => String(doctor.id) === doctorId)) {
+			setFormError("该医生不在职，不能新增出诊计划");
 			return;
 		}
 		if (!subdepartmentId) {
@@ -1218,12 +1227,10 @@ function EditPlanMaximumModal({
 		setSubmitting(true);
 		try {
 			// 规范 5.3 PATCH /schedule/plans/{planId}，仅允许修改 maximum。
-			// etag 存在时由 API 层作为 If-Match 发送；plan.etag 为 undefined 表示后端当前未下发 etag
-			// （如创建响应，规范 5.2），此时不传 If-Match，属兼容路径（规范 1.5）。
+			// 项目约定不做 If-Match：不发送 If-Match 头，只带幂等键。
 			await updateSchedulePlanMaximum({
 				planId: plan.id,
 				maximum: parsedMaximum,
-				etag: plan.etag,
 			});
 			showMessage("right", "修改成功");
 			void queryClient.invalidateQueries({ queryKey: ["schedule-plans"] });
@@ -1235,7 +1242,7 @@ function EditPlanMaximumModal({
 			} else if (isApiError(error) && error.code === "SCHEDULE_PLAN_LOCKED") {
 				setFormError("计划已开始，不能修改");
 			} else if (isApiError(error) && error.code === "SCHEDULE_CONFLICT") {
-				// 规范 5.3 中该码表示 If-Match 快照不一致；后端当前把「容量小于已用」也归入该码，
+				// 规范 5.3 的并发冲突：后端把「容量小于已用」也归入该码，
 				// 因此优先采用服务端返回的准确文案，再刷新列表让用户基于最新数据重试。
 				setFormError(getApiErrorMessage(error));
 				void queryClient.invalidateQueries({ queryKey: ["schedule-plans"] });
@@ -1321,7 +1328,7 @@ function SlotsPanel({
 	});
 	// 兜底顺序：接口数据 -> 计划内联 slots -> 空数组（后端可能省略空数组）。
 	const slots: ScheduleSlot[] = slotsQuery.data ?? plan.slots ?? [];
-	// 弹窗读取当前列表中的最新快照，保证 etag 与 used 已随失效重取更新。
+	// 弹窗读取当前列表中的最新快照，保证 used 已随缓存失效重取更新。
 	const capacitySlot = slots.find((item) => item.id === capacitySlotId) ?? null;
 	const deleteSlot = slots.find((item) => item.id === deleteSlotId) ?? null;
 
@@ -1349,11 +1356,8 @@ function SlotsPanel({
 
 	// 规范 5.5 PATCH /schedule/slots/{slotId}（仅允许修改 maximum）。
 	const updateMutation = useMutation({
-		mutationFn: (variables: {
-			slotId: number;
-			maximum: number;
-			etag?: string;
-		}) => updateScheduleSlotMaximum(variables),
+		mutationFn: (variables: { slotId: number; maximum: number }) =>
+			updateScheduleSlotMaximum(variables),
 		onSuccess: async () => {
 			showMessage("right", "修改成功");
 			setCapacitySlotId(null);
@@ -1361,7 +1365,7 @@ function SlotsPanel({
 		},
 		onError: (error) => {
 			setCapacityError(describeSlotUpdateError(error));
-			// 409 SCHEDULE_CONFLICT：可能是本地 etag 快照已过期，也可能是容量小于已用；
+			// 409 SCHEDULE_CONFLICT：服务端并发冲突或容量小于已用；
 			// 两种情况都重新拉取时段列表，并保持弹窗打开供用户基于最新数据重试。
 			if (isApiError(error) && error.code === "SCHEDULE_CONFLICT") {
 				void queryClient.invalidateQueries({
@@ -1444,12 +1448,10 @@ function SlotsPanel({
 			return;
 		}
 		setCapacityError("");
+		// 项目约定不做 If-Match：只提交 slotId 与 maximum。
 		updateMutation.mutate({
 			slotId: capacitySlot.id,
 			maximum,
-			// 规范 1.5 乐观并发：GET 返回 etag 时作为 If-Match 发送；
-			// etag 为 undefined 表示后端未下发 etag，此时不传 If-Match（兼容路径）。
-			etag: capacitySlot.etag,
 		});
 	};
 

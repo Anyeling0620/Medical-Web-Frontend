@@ -25,12 +25,10 @@ export interface AjaxOptions {
 	data?: RequestData;
 	// 可选成功回调：响应 2xx 且非 204 时调用。
 	fun?: (data: unknown) => void;
-	// 附加请求头（如 If-Match），键不区分大小写，可覆盖内部默认头。
+	// 附加请求头，键不区分大小写，可覆盖内部默认头。
 	headers?: Record<string, string>;
 	// 幂等键（规范 1.5）：映射为 Idempotency-Key 请求头。
 	idempotencyKey?: string;
-	// 乐观并发控制（规范 1.5）：映射为 If-Match 请求头。
-	ifMatch?: string;
 }
 
 // 拼接 baseURL 和接口地址，自动处理重复斜杠。
@@ -120,7 +118,6 @@ export async function ajax<T = unknown>({
 	fun,
 	headers: extraHeaders,
 	idempotencyKey,
-	ifMatch,
 }: AjaxOptions): Promise<T> {
 	// 请求方法统一转换为大写。
 	const requestMethod = method.toUpperCase();
@@ -140,9 +137,8 @@ export async function ajax<T = unknown>({
 	if (idempotencyKey !== undefined && !hasHeader(headers, "Idempotency-Key")) {
 		headers["Idempotency-Key"] = idempotencyKey;
 	}
-	if (ifMatch !== undefined && !hasHeader(headers, "If-Match")) {
-		headers["If-Match"] = ifMatch;
-	}
+	// 项目约定：明确不做 If-Match 乐观并发（后端不下发 etag、PATCH 也不校验），
+	// 因此这里不注入 If-Match 请求头；若后续规范再次出现该功能，按本约定忽略。
 
 	const requestInit: RequestInit = {
 		method: requestMethod,

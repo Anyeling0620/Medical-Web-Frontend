@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, Info, RotateCcw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 // 医生目录接口（规范 11.2）：科室/子科室下拉与医生名称映射的数据源。
-import { getDoctorOptions, getDoctorsList } from "@/api/doctors";
+import { getAllDoctorsIncludingInactive, getDoctorOptions } from "@/api/doctors";
 // 排班域接口（规范 5.1）：出诊计划查询；includeSlots=true 时每项带 slots 数组。
 import {
 	getSchedulePlans,
@@ -80,7 +80,9 @@ function DoctorVisitsPage() {
 		queryFn: getDoctorOptions,
 	});
 
-	// GET /api/v1/catalog/doctors（规范 11.2）：医生下拉数据源，pageSize 固定 100（规范 1.4 上限），
+	// GET /api/v1/catalog/doctors（规范 11.2）：医生筛选下拉与 doctorId -> 姓名映射的数据源。
+	// 全量拉取（分页取完）且包含离职/退休医生：医生总数超过单页上限或已离职时，
+	// 也要能筛选到并在卡片上显示姓名，而不是退化成「医生 #id」。
 	// 按草稿中的科室/子科室联动过滤，保证下拉候选与已选范围一致。
 	const doctorsQuery = useQuery({
 		queryKey: [
@@ -89,18 +91,17 @@ function DoctorVisitsPage() {
 			draftFilter.subdepartmentId,
 		],
 		queryFn: () =>
-			getDoctorsList({
+			getAllDoctorsIncludingInactive({
 				departmentId: draftFilter.departmentId,
 				subdepartmentId: draftFilter.subdepartmentId,
-				page: 1,
 				pageSize: PAGE_SIZE,
 			}),
 	});
-	const doctors = doctorsQuery.data?.items ?? [];
+	const doctors = doctorsQuery.data ?? [];
 
 	// 增量合并医生姓名映射：只补齐不覆盖，保证已展示的医生名不丢失。
 	useEffect(() => {
-		const items = doctorsQuery.data?.items;
+		const items = doctorsQuery.data;
 		if (!items || items.length === 0) return;
 		setDoctorNames((prev) => {
 			const next = { ...prev };
