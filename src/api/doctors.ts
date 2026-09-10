@@ -106,9 +106,14 @@ const VISIBLE_DOCTOR_STATUSES: DoctorStatus[] = [
 	"RETIRED",
 ];
 
+// 剩余分页的并发上限：调用方若省略 pageSize（缺省 10），页数会变多，
+// 分批请求可避免一次性打出过多并发请求。
+const PAGE_BATCH_SIZE = 5;
+
 // GET /api/v1/catalog/doctors 全量拉取：先取第 1 页，再按响应回显的 pageSize 取完剩余页。
 // 目的：单页最多 100 条（规范 1.4），只取第 1 页会让超出上限的医生退化成「医生 #id」。
 // pageSize 沿用调用方（或接口默认）的值，不做调整。
+// 说明：始终从第 1 页开始，params 中的 page 会被忽略。
 export async function getAllDoctors(
 	params: DoctorSearchParams = {},
 ): Promise<Doctor[]> {
@@ -118,12 +123,16 @@ export async function getAllDoctors(
 	const totalPages = pageSize > 0 ? Math.ceil(first.total / pageSize) : 1;
 	if (totalPages <= 1) return first.items;
 
-	const remaining = await Promise.all(
-		Array.from({ length: totalPages - 1 }, (_, index) =>
-			getDoctorsList({ ...params, page: index + 2 }),
-		),
-	);
-	return [...first.items, ...remaining.flatMap((result) => result.items)];
+	const items = [...first.items];
+	for (let start = 2; start <= totalPages; start += PAGE_BATCH_SIZE) {
+		const batch = Array.from(
+			{ length: Math.min(PAGE_BATCH_SIZE, totalPages - start + 1) },
+			(_, index) => getDoctorsList({ ...params, page: start + index }),
+		);
+		const results = await Promise.all(batch);
+		for (const result of results) items.push(...result.items);
+	}
+	return items;
 }
 
 // 全量拉取「可见医生」：ACTIVE + RESIGNED + RETIRED 三种状态分别分页取完后合并。

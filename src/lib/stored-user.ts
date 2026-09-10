@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 // SSR 阶段没有 localStorage，渲染期直接读取会抛错；即使加兜底，服务端也渲染不出真实值，
 // 客户端首屏读取还会造成 hydration 不一致。
 // 因此统一在水合完成后（useEffect）读取。
-export function readStoredString(key: string, fallback: string): string {
+function readStoredString(key: string, fallback: string): string {
 	if (typeof window === "undefined") return fallback;
 	try {
 		const raw = window.localStorage.getItem(key);

@@ -1297,7 +1297,7 @@ function EditPlanMaximumModal({
 }
 
 // 出诊时间段管理面板：展开计划时展示时段列表，并提供新增 / 改容量 / 删除。
-// 契约来源：规范 5.5（时段接口）与 12.3；幂等键与 If-Match 见规范 1.5。
+// 契约来源：规范 5.5（时段接口）与 12.3；写操作需要幂等键（规范 1.5），项目约定不做 If-Match。
 function SlotsPanel({
 	plan,
 	expanded,

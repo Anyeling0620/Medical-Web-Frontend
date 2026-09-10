@@ -123,9 +123,11 @@ export async function ajax<T = unknown>({
 	const requestMethod = method.toUpperCase();
 
 	// 最终请求地址为 baseURL +（/api/v1 +）接口相对路径。
+	// 第二个参数只用于解析相对地址；SSR 阶段没有 window，用固定占位 origin 兜底，
+	// 避免将来在 loader/prefetch 中调用时重现「window is not defined」导致 SSR 回退。
 	const requestURL = new URL(
 		buildRequestURL(apiConfig.baseURL, url),
-		window.location.origin,
+		typeof window === "undefined" ? "http://localhost" : window.location.origin,
 	);
 
 	// 先合并调用方附加头，再补齐自动生成的默认头，保证附加头可覆盖默认值。
