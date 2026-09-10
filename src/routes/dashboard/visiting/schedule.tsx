@@ -803,7 +803,34 @@ function VisitingDetailModal({
 // 契约：规范 5.2 POST /schedule/plans（必须携带 Idempotency-Key）
 // 与规范 5.5 POST /schedule/plans/{planId}/slots（每个时段一次写操作）。
 // 说明：原型表单只列出「科室部门」，但规范 5.2 的请求体必须包含 subdepartmentId（诊室），
-// 因此这里补充「出诊诊室」下拉；医生只关联一个子科室时自动选中它，减少一次选择。
+// 因此这里补充「出诊诊室」下拉：候选项 = 所选科室的子科室 ∩ 医生已关联的子科室
+// （规范 5.2 要求医生与该子科室存在关联，否则写入会返回 422「医生未关联该子科室」）；
+// 当前科室下候选唯一时自动选中，多个候选时要求用户显式选择，候选为空时禁用下拉并说明原因。
+
+// 「出诊诊室」字段的提示文案：把「为什么没有候选 / 为什么不能选」直接告诉用户，
+// 避免用户只能在提交后从后端 422（医生未关联该子科室）里发现问题。
+function roomFieldHintFor(params: {
+	doctorId: string;
+	loading: boolean;
+	failed: boolean;
+	optionCount: number;
+	// 医生关联的诊室总数：用于区分「医生根本没关联诊室」与「关联的诊室不属于所选科室」，避免误导用户去重复维护关联。
+	linkedCount: number;
+}): string {
+	if (!params.doctorId)
+		return "请先选择出诊医生，诊室候选会按该医生关联的诊室收敛";
+	if (params.loading) return "正在读取该医生关联的诊室…";
+	// 已有缓存候选（optionCount > 0）时的刷新失败不算读取失败：候选项仍可用，只保留重试入口而不改提示文案。
+	if (params.failed && params.optionCount === 0)
+		return "医生关联诊室读取失败，请点「重新加载医生诊室」重试";
+	if (params.optionCount === 0) {
+		return params.linkedCount === 0
+			? "该医生未关联任何诊室，请先在医生目录中维护「医生-诊室」关联"
+			: "该医生关联的诊室不在所选科室（或未在科室目录中维护），请调整科室或检查「医生-诊室」关联";
+	}
+	return "对应接口的 subdepartmentId；仅可选择该医生已关联的诊室";
+}
+
 function CreatePlanModal({
 	departments,
 	subdepartments,
@@ -851,25 +878,60 @@ function CreatePlanModal({
 		planKeyRef.current = createIdempotencyKey("plan-create");
 	}, []);
 
-	// GET /api/v1/catalog/doctors/{doctorId}：详情里的 subdepartments 用于判断医生是否只关联一个诊室。
+	// GET /api/v1/catalog/doctors/{doctorId}：详情里的 subdepartments 即该医生已关联的诊室，
+	// 下面与所选科室的子科室求交集，收敛出该医生真正可出诊的诊室。
 	const doctorDetailQuery = useQuery({
 		// 缓存键用数字 id，与医生详情页（nursing/doctor/$doctorId）保持一致，避免同一医生缓存两份。
 		queryKey: ["doctor-detail", Number(doctorId)],
 		queryFn: () => getDoctorDetail(Number(doctorId)),
 		enabled: Number(doctorId) > 0,
 	});
-	// 医生只关联一个子科室时自动选中（原型没有该交互，这里减少一次选择）。
-	useEffect(() => {
-		const linked = doctorDetailQuery.data?.subdepartments ?? [];
-		if (linked.length === 1) {
-			setSubdepartmentId(String(linked[0].id));
-		}
-	}, [doctorDetailQuery.data]);
-
-	// 诊室下拉：按所选科室过滤；未选科室时展示全部子科室。
-	const roomOptions = subdepartments.filter(
-		(item) => !departmentId || item.departmentId === Number(departmentId),
+	// 医生已关联的子科室 id 集合：来自 GET /api/v1/catalog/doctors/{doctorId} 的 subdepartments，
+	// 与后端写入校验（规范 5.2：医生必须与该子科室存在关联）读取的是同一张关联表
+	// hospital.medical_dept_sub_and_doctor；用它把诊室候选收敛为「医生真正可出诊的诊室」。
+	const linkedSubdepartmentIds = useMemo(
+		() =>
+			new Set(
+				(doctorDetailQuery.data?.subdepartments ?? []).map((item) => item.id),
+			),
+		[doctorDetailQuery.data],
 	);
+
+	// 诊室候选 = 所选科室的子科室 ∩ 医生已关联的子科室：
+	// 只按科室过滤会把医生未关联的诊室一并列出，用户选中后要等提交才被后端 422 驳回；
+	// 未选医生时不提供候选，避免跨医生误选。
+	const roomOptions = useMemo(
+		() =>
+			doctorId
+				? subdepartments.filter(
+						(item) =>
+							(!departmentId || item.departmentId === Number(departmentId)) &&
+							linkedSubdepartmentIds.has(item.id),
+					)
+				: [],
+		[subdepartments, departmentId, doctorId, linkedSubdepartmentIds],
+	);
+
+	// 医生确定后同步「出诊诊室」：候选唯一时自动选中（减少一次选择；此时唯一候选即该医生在当前科室下
+	// 唯一可出诊的诊室，因此用户无法把它清空为「请选择」），候选有多个时清空并要求用户显式选择，无候选时清空并禁用下拉；
+	// 已选值仍在候选内时保留，避免医生详情的异步返回覆盖用户的手动选择。
+	useEffect(() => {
+		if (!doctorId || !doctorDetailQuery.data) return;
+		const candidateIds = roomOptions.map((item) => item.id);
+		if (subdepartmentId && candidateIds.includes(Number(subdepartmentId)))
+			return;
+		setSubdepartmentId(
+			candidateIds.length === 1 ? String(candidateIds[0]) : "",
+		);
+	}, [doctorId, doctorDetailQuery.data, roomOptions, subdepartmentId]);
+
+	const roomFieldHint = roomFieldHintFor({
+		doctorId,
+		loading: doctorDetailQuery.isLoading,
+		failed: doctorDetailQuery.isError,
+		optionCount: roomOptions.length,
+		linkedCount: doctorDetailQuery.data?.subdepartments?.length ?? 0,
+	});
 	const allSlotsChecked = checkedSlots.length === OUTPATIENT_TIME_SLOTS.length;
 
 	// 「全选」复选框与放大镜按钮共用：全选 / 清空。
@@ -904,8 +966,30 @@ function CreatePlanModal({
 			setFormError("该医生不在职，不能新增出诊计划");
 			return;
 		}
+		// 医生关联诊室尚未取到（读取中或读取失败）时先说明真实原因：此时诊室候选必然为空，
+		// 若直接落到「请选择出诊诊室」，用户按提示操作也无法继续，只会反复提交同一个错误。
+		if (!doctorDetailQuery.data) {
+			setFormError(
+				doctorDetailQuery.isError
+					? "医生关联诊室读取失败，请点「重新加载医生诊室」后再试"
+					: "医生关联诊室正在读取中，请稍候再试",
+			);
+			return;
+		}
+		// 候选为空时先解释原因（复用字段提示的同源文案，避免两处文案漂移）：此时用户无论怎么选都提交不了，
+		// 直接落到「请选择出诊诊室」只会让其反复重试同一个错误。
+		if (roomOptions.length === 0) {
+			setFormError(roomFieldHint);
+			return;
+		}
 		if (!subdepartmentId) {
 			setFormError("请选择出诊诊室");
+			return;
+		}
+		// 规范 5.2：医生必须与该子科室存在关联。诊室候选已按关联收敛，这里再做一次兜底校验，
+		// 避免关联数据变化或选择被外部改写时把非法组合提交给后端（后端会返回 422「医生未关联该子科室」）。
+		if (!roomOptions.some((item) => item.id === Number(subdepartmentId))) {
+			setFormError("该医生未关联所选诊室，请重新选择出诊诊室");
 			return;
 		}
 		if (!date) {
@@ -1027,6 +1111,8 @@ function CreatePlanModal({
 							// 切换科室后医生候选与诊室候选都会变化，需要重新选择。
 							setDoctorId("");
 							setSubdepartmentId("");
+							// 清掉上一次的校验/接口错误红字，避免用户已改正却仍看到旧提示。
+							setFormError("");
 						}}
 					>
 						<option value="">请选择</option>
@@ -1045,6 +1131,8 @@ function CreatePlanModal({
 						onChange={(event) => {
 							setDoctorId(event.target.value);
 							setSubdepartmentId("");
+							// 清掉上一次的校验/接口错误红字，避免用户已改正却仍看到旧提示。
+							setFormError("");
 						}}
 					>
 						<option value="">请选择</option>
@@ -1056,12 +1144,23 @@ function CreatePlanModal({
 					</SelectInput>
 				</Field>
 
-				{/* 契约要求：规范 5.2 请求体必须包含 subdepartmentId，原型表单未列出，这里补充为「出诊诊室」。 */}
-				<Field label="出诊诊室" required hint="对应接口的 subdepartmentId">
+				{/* 契约要求：规范 5.2 请求体必须包含 subdepartmentId，原型表单未列出，这里补充为「出诊诊室」；
+					候选项按「科室 ∩ 医生已关联诊室」收敛，避免提交后才被后端 422 驳回。 */}
+				<Field label="出诊诊室" required hint={roomFieldHint}>
 					<SelectInput
 						value={subdepartmentId}
-						disabled={submitting}
-						onChange={(event) => setSubdepartmentId(event.target.value)}
+						// 候选为空（读取中 / 读取失败 / 无可用诊室）时下拉没有可选项，禁用可避免用户点了也没有反馈。
+						disabled={
+							submitting ||
+							!doctorId ||
+							doctorDetailQuery.isLoading ||
+							roomOptions.length === 0
+						}
+						onChange={(event) => {
+							setSubdepartmentId(event.target.value);
+							// 清掉上一次的校验/接口错误红字，避免用户已改正却仍看到旧提示。
+							setFormError("");
+						}}
 					>
 						<option value="">请选择</option>
 						{roomOptions.map((item) => (
@@ -1070,6 +1169,23 @@ function CreatePlanModal({
 							</option>
 						))}
 					</SelectInput>
+					{/* 医生详情读取失败时给出显式重试入口：原生 select 重选同一个医生不会触发 onChange，
+						    没有该按钮时用户只能切换医生或关闭弹窗重开才能恢复；
+						    这里再包一层行容器，避免 Field 的纵向 flex 布局把按钮拉成整行宽。 */}
+					{doctorDetailQuery.isError ? (
+						<div className="flex items-center gap-3">
+							<Button
+								onClick={() => {
+									// 先清掉上一次的错误红字，避免重试成功后输入框下方仍残留旧提示。
+									setFormError("");
+									void doctorDetailQuery.refetch();
+								}}
+								disabled={submitting}
+							>
+								重新加载医生诊室
+							</Button>
+						</div>
+					) : null}
 				</Field>
 
 				<Field label="出诊日期" required>
