@@ -19,6 +19,8 @@ import {
 	visibleMenuItems,
 } from "@/lib/navigation-menu";
 import { useStoredUser } from "@/lib/stored-user";
+import { useUserProfile } from "@/lib/use-user-profile";
+import { resolveDisplayName } from "@/lib/user-profile";
 import doctorImage from "@/static/doctor.png";
 
 // 菜单图标映射：菜单模型只保存图标键（模型保持零运行时依赖，可在 Node 下直接测试），
@@ -44,6 +46,12 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 	// 渲染期读取还会造成服务端与客户端首屏不一致（hydration 报错）。
 	// permissionList/doctorId 同时用于菜单可见性判定。
 	const { username, permissions, permissionList, doctorId } = useStoredUser();
+
+	// 头像与名称取自本机保存的个性化信息（「系统设置」页可修改）；
+	// 未设置时回落到项目默认图标与登录账号名，保持原有展示行为。
+	const profile = useUserProfile(username);
+	const avatarSrc = profile.avatarDataUrl || doctorImage;
+	const displayName = resolveDisplayName(profile.displayName, username);
 
 	// 当前账号可见的菜单：ROOT 见全部；其它账号按权限编码收敛；
 	// 「我的患者」仅医生账号（doctorId 非空）可见，判定规则见 navigation-menu.ts。
@@ -219,14 +227,14 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 				<div className="border-t border-slate-200/50 p-4">
 					<div className="flex items-center space-x-3 rounded-xl bg-slate-50 p-3">
 						<img
-							src={doctorImage}
+							src={avatarSrc}
 							alt="user"
 							className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-500"
 						/>
 
 						<div className="min-w-0 flex-1">
 							<p className="truncate text-sm font-medium text-slate-800">
-								{username || "管理员"}
+								{displayName || "管理员"}
 							</p>
 
 							<p className="truncate text-xs text-slate-500">

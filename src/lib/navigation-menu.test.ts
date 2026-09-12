@@ -20,14 +20,12 @@ import {
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROUTES_DIR = path.resolve(TEST_DIR, "../routes");
 
-// 唯一允许「没有对应路由文件」的白名单：历史遗留占位菜单 /dashboard/setting/default（菜单名 Revenue）。
-// 该入口在本次改动之前就存在，仓库里从未提供
-// src/routes/dashboard/setting/default/index.tsx 页面；本次改动只涉及组织管理下的科室/子科室
-// 与医生专属「我的患者」，不应顺手改动它，因此测试对这一个路径放行。
-// 例外只允许这一项：任何新增菜单若指向不存在的路由，下面的断言必须让测试失败。
-const ROUTE_FILE_WHITELIST: ReadonlySet<string> = new Set([
-	"/dashboard/setting/default",
-]);
+// 允许「没有对应路由文件」的白名单：当前为空集合。
+// 历史遗留的占位菜单 /dashboard/setting/default（菜单名 Revenue）已随「系统设置」改为
+// 不含子菜单的父菜单一并移除，菜单模型里不再有指向缺失路由文件的路径。
+// 保留这个常量是为了让「菜单路径必须能解析到路由文件」的断言只有一个放行入口：
+// 将来若确实需要放行，必须在此显式登记，并同步补上「该路径确实没有页面」的断言。
+const ROUTE_FILE_WHITELIST: ReadonlySet<string> = new Set<string>([]);
 
 // ROOT 超级账号：permissions 内含 ROOT，isRoot 为 true，且不是医生账号。
 const ROOT_VIEWER: MenuViewer = {
@@ -141,6 +139,16 @@ describe("菜单结构", () => {
 			false,
 			"不应再出现 label 为「基础资料」的父菜单项",
 		);
+	});
+
+	test("「系统设置」父菜单不含子菜单，点击后直接进入 /dashboard/setting", () => {
+		const setting = findMenu("setting");
+		assert.strictEqual(setting.label, "系统设置");
+		// 不含子菜单时必须有自身的 to，否则点击父菜单不会发生任何跳转。
+		assert.strictEqual(setting.to, "/dashboard/setting");
+		// submenu 必须是 undefined（而不是空数组）：Sidebar 按 submenu 是否存在决定
+		// 渲染成可展开父菜单还是可点击入口，空数组会把它渲染成点不开的折叠项。
+		assert.strictEqual(setting.submenu, undefined);
 	});
 });
 
@@ -268,10 +276,10 @@ describe("跳转路径有效性", () => {
 				["nursing", 4],
 				["visiting", 3],
 				["patients", 0],
-				["setting", 1],
+				["setting", 0],
 			],
 		);
-		// 2 个父菜单自身跳转（首页、我的患者）+ 10 个子菜单项跳转。
+		// 3 个父菜单自身跳转（首页、我的患者、系统设置）+ 9 个子菜单项跳转。
 		assert.strictEqual(links.length, 12);
 
 		for (const link of links) {
@@ -284,7 +292,7 @@ describe("跳转路径有效性", () => {
 		}
 	});
 
-	test("关键路径解析到预期文件（含新增的科室/子科室/我的患者）", () => {
+	test("关键路径解析到预期文件（含科室/子科室/我的患者/系统设置）", () => {
 		const expectedFiles = new Map<string, string>([
 			["/dashboard", "dashboard/index.tsx"],
 			[
@@ -312,6 +320,7 @@ describe("跳转路径有效性", () => {
 				"dashboard/visiting/video-consultation.tsx",
 			],
 			["/dashboard/patients", "dashboard/patients/index.tsx"],
+			["/dashboard/setting", "dashboard/setting/index.tsx"],
 		]);
 
 		for (const [to, file] of expectedFiles) {
@@ -331,12 +340,18 @@ describe("跳转路径有效性", () => {
 		}
 	});
 
-	test("白名单只允许历史遗留的 /dashboard/setting/default 一项", () => {
-		assert.deepStrictEqual(
-			[...ROUTE_FILE_WHITELIST],
-			["/dashboard/setting/default"],
+	test("白名单为空，且历史遗留的 /dashboard/setting/default 已彻底移除", () => {
+		// 「系统设置」改为不含子菜单的父菜单后，白名单不允许再放行任何路径。
+		assert.deepStrictEqual([...ROUTE_FILE_WHITELIST], []);
+		// 历史占位入口（菜单名 Revenue）已彻底移除：菜单模型里不再出现该路径，
+		// 仓库也从未提供对应页面，两条断言同时防止它被重新加回菜单。
+		assert.strictEqual(
+			collectMenuLinks().some(
+				(link) => link.to === "/dashboard/setting/default",
+			),
+			false,
+			"菜单模型中不应再出现 /dashboard/setting/default",
 		);
-		// 白名单项本身确实没有页面；若哪天补上了页面，本断言会失败并提醒移除白名单。
 		assert.strictEqual(hasRouteFile("/dashboard/setting/default"), false);
 	});
 });

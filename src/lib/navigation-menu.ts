@@ -56,8 +56,9 @@ export interface MenuViewer {
 // 管理端菜单树。
 //
 // 组织管理下挂「科室管理 / 子科室管理」；原先的「基础资料」父菜单已删除，
-// 其子项按业务归属移动到组织管理下。医护管理、出诊管理、系统设置的入口与
-// 跳转路径保持原有行为不变。
+// 其子项按业务归属移动到组织管理下。医护管理、出诊管理的入口与跳转路径保持原有行为不变；
+// 「系统设置」改为不含子菜单的父菜单，点击后直接进入 /dashboard/setting
+// （页面内提供修改头像、修改名称与退出登录）。
 export const navigationMenu: MenuDefinition[] = [
 	{
 		id: "dashboard",
@@ -144,9 +145,9 @@ export const navigationMenu: MenuDefinition[] = [
 		label: "系统设置",
 		// 不声明 permissions：保持 main 的历史可见性。
 		// 注意 SYSTEM:SELECT 并不是后端使用的权限编码，声明它会让除 ROOT 外的账号永久看不到该入口。
-		submenu: [
-			{ id: "default", label: "Revenue", to: "/dashboard/setting/default" },
-		],
+		// 不含子菜单：点击后直接进入个人设置页（修改头像 / 修改名称 / 退出登录）。
+		// 原「Revenue」子项只是历史占位，仓库里从来没有对应路由，本次一并移除。
+		to: "/dashboard/setting",
 	},
 ];
 
