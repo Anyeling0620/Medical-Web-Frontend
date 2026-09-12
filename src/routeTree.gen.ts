@@ -14,6 +14,7 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as DashboardPatientsIndexRouteImport } from './routes/dashboard/patients/index'
+import { Route as DashboardSettingIndexRouteImport } from './routes/dashboard/setting/index'
 import { Route as DashboardVisitingDoctorVisitsRouteImport } from './routes/dashboard/visiting/doctor-visits'
 import { Route as DashboardVisitingScheduleRouteImport } from './routes/dashboard/visiting/schedule'
 import { Route as DashboardVisitingVideoConsultationRouteImport } from './routes/dashboard/visiting/video-consultation'
@@ -50,6 +51,11 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
 const DashboardPatientsIndexRoute = DashboardPatientsIndexRouteImport.update({
   id: '/patients/',
   path: '/patients/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardSettingIndexRoute = DashboardSettingIndexRouteImport.update({
+  id: '/setting/',
+  path: '/setting/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardVisitingDoctorVisitsRoute =
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
   '/dashboard/patients/': typeof DashboardPatientsIndexRoute
+  '/dashboard/setting/': typeof DashboardSettingIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
   '/dashboard/catalog/subdepartment/$subdepartmentId': typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   '/dashboard/nursing/doctor/$doctorId': typeof DashboardNursingDoctorDoctorIdRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
   '/dashboard/patients': typeof DashboardPatientsIndexRoute
+  '/dashboard/setting': typeof DashboardSettingIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
   '/dashboard/catalog/subdepartment/$subdepartmentId': typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   '/dashboard/nursing/doctor/$doctorId': typeof DashboardNursingDoctorDoctorIdRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
   '/dashboard/patients/': typeof DashboardPatientsIndexRoute
+  '/dashboard/setting/': typeof DashboardSettingIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
   '/dashboard/catalog/subdepartment/$subdepartmentId': typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   '/dashboard/nursing/doctor/$doctorId': typeof DashboardNursingDoctorDoctorIdRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
     | '/dashboard/patients/'
+    | '/dashboard/setting/'
     | '/dashboard/catalog/department/$departmentId'
     | '/dashboard/catalog/subdepartment/$subdepartmentId'
     | '/dashboard/nursing/doctor/$doctorId'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
     | '/dashboard/patients'
+    | '/dashboard/setting'
     | '/dashboard/catalog/department/$departmentId'
     | '/dashboard/catalog/subdepartment/$subdepartmentId'
     | '/dashboard/nursing/doctor/$doctorId'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
     | '/dashboard/patients/'
+    | '/dashboard/setting/'
     | '/dashboard/catalog/department/$departmentId'
     | '/dashboard/catalog/subdepartment/$subdepartmentId'
     | '/dashboard/nursing/doctor/$doctorId'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/patients'
       fullPath: '/dashboard/patients/'
       preLoaderRoute: typeof DashboardPatientsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/setting/': {
+      id: '/dashboard/setting/'
+      path: '/setting'
+      fullPath: '/dashboard/setting/'
+      preLoaderRoute: typeof DashboardSettingIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/visiting/doctor-visits': {
@@ -377,6 +396,7 @@ interface DashboardRouteRouteChildren {
   DashboardVisitingScheduleRoute: typeof DashboardVisitingScheduleRoute
   DashboardVisitingVideoConsultationRoute: typeof DashboardVisitingVideoConsultationRoute
   DashboardPatientsIndexRoute: typeof DashboardPatientsIndexRoute
+  DashboardSettingIndexRoute: typeof DashboardSettingIndexRoute
   DashboardCatalogDepartmentDepartmentIdRoute: typeof DashboardCatalogDepartmentDepartmentIdRoute
   DashboardCatalogSubdepartmentSubdepartmentIdRoute: typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   DashboardNursingDoctorDoctorIdRoute: typeof DashboardNursingDoctorDoctorIdRoute
@@ -395,6 +415,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardVisitingVideoConsultationRoute:
     DashboardVisitingVideoConsultationRoute,
   DashboardPatientsIndexRoute: DashboardPatientsIndexRoute,
+  DashboardSettingIndexRoute: DashboardSettingIndexRoute,
   DashboardCatalogDepartmentDepartmentIdRoute:
     DashboardCatalogDepartmentDepartmentIdRoute,
   DashboardCatalogSubdepartmentSubdepartmentIdRoute:

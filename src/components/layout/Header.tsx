@@ -9,6 +9,8 @@ import {
 	Sun,
 } from "lucide-react";
 import { useStoredUser } from "@/lib/stored-user";
+import { useUserProfile } from "@/lib/use-user-profile";
+import { resolveDisplayName } from "@/lib/user-profile";
 import doctorImage from "@/static/doctor.png";
 
 type HeaderProps = {
@@ -19,6 +21,12 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 	// 用户展示信息改为水合后读取：SSR 阶段没有 localStorage，
 	// 渲染期直接读取会抛错，并导致 /dashboard/** 整体回退为客户端渲染。
 	const { username, permissions } = useStoredUser();
+
+	// 头像与名称取自本机保存的个性化信息（「系统设置」页可修改）；
+	// 未设置时回落到项目默认图标与登录账号名，保持原有展示行为。
+	const profile = useUserProfile(username);
+	const avatarSrc = profile.avatarDataUrl || doctorImage;
+	const displayName = resolveDisplayName(profile.displayName, username);
 
 	const keepLightTheme = () => {
 		document.documentElement.classList.remove("dark");
@@ -39,7 +47,9 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 					</button>
 
 					<div className="hidden @min-[640px]:block">
-						<h1 className="text-2xl font-black text-slate-800">医疗系统管理面板</h1>
+						<h1 className="text-2xl font-black text-slate-800">
+							医疗系统管理面板
+						</h1>
 
 						{/*<p>Welcome back, Anyeling! Here's what's happening today.</p>*/}
 					</div>
@@ -117,14 +127,14 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
 					{/* User Profile */}
 					<div className="flex items-center space-x-3 pl-3 border-l border-slate-200">
 						<img
-							src={doctorImage}
+							src={avatarSrc}
 							alt="user"
 							className="w-8 h-8 shrink-0 object-cover rounded-full ring-2 ring-blue-500"
 						/>
 
 						<div className="hidden @min-[640px]:block max-w-32 break-words">
 							<p className="text-sm font-medium text-slate-500">
-								{username}
+								{displayName}
 							</p>
 
 							<p className="text-xs font-medium text-slate-500">
