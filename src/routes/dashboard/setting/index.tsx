@@ -218,15 +218,7 @@ function SettingPage() {
 
 	return (
 		<main className="min-h-screen bg-[#f5f7fb]">
-			<div className="mx-auto max-w-[900px] space-y-4">
-				{/* 页面说明 */}
-				<header className="border border-slate-200 bg-white p-4 shadow-sm">
-					<h1 className="text-lg font-semibold text-slate-800">系统设置</h1>
-					<p className="mt-1 text-sm text-slate-500">
-						头像与名称保存在本机浏览器，并按登录账号分别记录；未设置时展示项目默认图标与登录账号名。
-					</p>
-				</header>
-
+			<div className="mx-auto max-w-[900px]">
 				{/* 个人资料：头像 + 名称 + 操作 */}
 				<section className="border border-slate-200 bg-white p-6 shadow-sm">
 					<h2 className="text-base font-semibold text-slate-800">个人资料</h2>
@@ -338,7 +330,7 @@ function SettingPage() {
 			<ConfirmDialog
 				open={logoutConfirmOpen}
 				title="退出登录"
-				message="退出后需要重新输入账号密码登录；本机保存的头像与名称会保留。"
+				message="退出后需要重新输入账号密码登录"
 				confirmText="退出登录"
 				danger
 				loading={isLoggingOut}
