@@ -74,7 +74,7 @@ function Home() {
 					<div className="flex w-full max-w-md items-center gap-2">
 						<input
 							className="h-8 w-full border-b border-gray-400 px-4 py-2 transition focus:border-indigo-800 focus:outline-none"
-							placeholder="输入管理员账号用户名"
+							placeholder="输入账号用户名"
 							type="text"
 							value={username}
 							onChange={(event) => setUsername(event.target.value)}
@@ -85,7 +85,7 @@ function Home() {
 					<div className="flex w-full max-w-md items-center gap-2">
 						<input
 							className="h-8 w-full border-b border-gray-400 px-4 py-2 transition focus:border-indigo-800 focus:outline-none"
-							placeholder="输入管理员账号密码"
+							placeholder="输入账号密码"
 							type="password"
 							value={password}
 							onChange={(event) => setPassword(event.target.value)}

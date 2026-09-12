@@ -1,85 +1,36 @@
 import { useNavigate } from "@tanstack/react-router";
 import {
-	BarChart3,
 	Building2,
+	CalendarDays,
 	ChevronDown,
 	LayoutDashboard,
 	type LucideIcon,
+	Settings,
 	Stethoscope,
-	// ListChecks,
-	// Package,
-	// ShoppingCart,
+	Users,
 	Zap,
 } from "lucide-react";
 import { useState } from "react";
+import {
+	type MenuDefinition,
+	type MenuIconKey,
+	navigationMenu,
+	type SubmenuDefinition,
+	visibleMenuItems,
+} from "@/lib/navigation-menu";
 import { useStoredUser } from "@/lib/stored-user";
 import doctorImage from "@/static/doctor.png";
 
-type SubmenuItem = {
-	id: string;
-	label: string;
+// 菜单图标映射：菜单模型只保存图标键（模型保持零运行时依赖，可在 Node 下直接测试），
+// 具体图标组件在这里解析。
+const MENU_ICONS: Record<MenuIconKey, LucideIcon> = {
+	dashboard: LayoutDashboard,
+	building: Building2,
+	doctor: Stethoscope,
+	calendar: CalendarDays,
+	patients: Users,
+	settings: Settings,
 };
-
-type MenuItem = {
-	id: string;
-	icon: LucideIcon;
-	label: string;
-	badge?: string;
-	submenu?: SubmenuItem[];
-};
-
-const menuItems: MenuItem[] = [
-	{
-		id: "dashboard",
-		icon: LayoutDashboard,
-		label: "首页",
-		badge: "New",
-	},
-	{
-		id: "organization",
-		icon: BarChart3,
-		label: "组织管理",
-		submenu: [{ id: "default", label: "Revenue" }],
-	},
-	{
-		id: "catalog",
-		icon: Building2,
-		label: "基础资料",
-		// 科室管理入口，点击跳转 /dashboard/catalog/department
-		submenu: [{ id: "department", label: "科室管理" }],
-	},
-	{
-		id: "nursing",
-		icon: Stethoscope,
-		label: "医护管理",
-		// 医护管理保留 4 个子菜单：医生/护士/护工管理与诊费设置。
-		// 医生管理已有真实后端与页面；其余子菜单当前无调用历史，仅保留入口占位。
-		submenu: [
-			{ id: "doctor", label: "医生管理" },
-			{ id: "nurse", label: "护士管理" },
-			{ id: "caregiver", label: "护工管理" },
-			{ id: "consultation-fee", label: "诊费设置" },
-		],
-	},
-	{
-		id: "visiting",
-		icon: BarChart3,
-		label: "出诊管理",
-		// 出诊管理子菜单：门诊日程表 / 医生出诊表 / 视频问诊。
-		// 三者当前无前端调用历史，仅保留入口占位，后续接入对应接口。
-		submenu: [
-			{ id: "schedule", label: "门诊日程表" },
-			{ id: "doctor-visits", label: "医生出诊表" },
-			{ id: "video-consultation", label: "视频问诊" },
-		],
-	},
-	{
-		id: "setting",
-		icon: BarChart3,
-		label: "系统设置",
-		submenu: [{ id: "default", label: "Revenue" }],
-	},
-];
 
 type SidebarProps = {
 	collapse: boolean;
@@ -91,7 +42,16 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 
 	// 用户展示信息与 Header 一致改为水合后读取：SSR 阶段读取 localStorage 拿不到值，
 	// 渲染期读取还会造成服务端与客户端首屏不一致（hydration 报错）。
-	const { username, permissions } = useStoredUser();
+	// permissionList/doctorId 同时用于菜单可见性判定。
+	const { username, permissions, permissionList, doctorId } = useStoredUser();
+
+	// 当前账号可见的菜单：ROOT 见全部；其它账号按权限编码收敛；
+	// 「我的患者」仅医生账号（doctorId 非空）可见，判定规则见 navigation-menu.ts。
+	const menuItems = visibleMenuItems(navigationMenu, {
+		isRoot: permissionList.includes("ROOT"),
+		permissions: permissionList,
+		isDoctor: doctorId !== null,
+	});
 
 	const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -120,7 +80,7 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 		setActiveSubmenuId(submenuId);
 	};
 
-	const handleItemClick = (item: MenuItem) => {
+	const handleItemClick = (item: MenuDefinition) => {
 		// 点击父级 item 时，父级高亮，子项取消高亮
 		selectItem(item.id);
 
@@ -134,16 +94,17 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 		}
 
 		navigate({
-			to: `/${item.id}`,
+			to: item.to ?? `/${item.id}`,
 		});
 	};
 
-	const handleSubmenuClick = (itemId: string, submenuId: string) => {
+	const handleSubmenuClick = (itemId: string, submenu: SubmenuDefinition) => {
 		// 点击子项后，子项高亮，父项不再高亮
-		selectItem(itemId, submenuId);
+		selectItem(itemId, submenu.id);
+		// 子路由路径由菜单模型给出：科室/子科室管理挂在组织管理下，
+		// 但路由仍是 /dashboard/catalog/**，不能再按 `${父级id}/${子级id}` 推导。
 		navigate({
-			// 子路由位于 /dashboard 布局路由下，需补齐 /dashboard 前缀
-			to: `/dashboard/${itemId}/${submenuId}`,
+			to: submenu.to,
 		});
 	};
 
@@ -177,6 +138,7 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 
 					// 只有父级本身被选中且没有选中子项时，父级才高亮
 					const isActive = activeItemId === item.id && activeSubmenuId === null;
+					const Icon = MENU_ICONS[item.icon];
 
 					return (
 						<div key={item.id}>
@@ -198,7 +160,7 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 										collapse ? "w-auto justify-center" : "w-full space-x-3"
 									} flex items-center`}
 								>
-									<item.icon className="h-5 w-5 shrink-0" />
+									<Icon className="h-5 w-5 shrink-0" />
 
 									{!collapse && (
 										<div className="flex w-full justify-between">
@@ -239,7 +201,7 @@ export default function Sidebar({ collapse, onToggle }: SidebarProps) {
 														? "bg-linear-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25"
 														: "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
 												}`}
-												onClick={() => handleSubmenuClick(item.id, submenu.id)}
+												onClick={() => handleSubmenuClick(item.id, submenu)}
 											>
 												{submenu.label}
 											</button>
