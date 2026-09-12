@@ -30,6 +30,14 @@ function storeSessionUser(session: AuthSession) {
 		"permissions",
 		JSON.stringify(session.permissions[0] ?? ""),
 	);
+	// 完整权限列表用于侧边栏菜单可见性判定（permissions 只保留首个权限用于展示）。
+	localStorage.setItem("permissionList", JSON.stringify(session.permissions));
+	// 医生编号（mis_user.ref_id -> doctor.id，契约 §6.10）：非医生账号为 null，
+	// 侧边栏据此展示「我的患者」入口。
+	localStorage.setItem(
+		"doctorId",
+		JSON.stringify(session.user.doctorId ?? null),
+	);
 }
 
 // 清除 Header/Sidebar 展示用的用户信息。
@@ -38,6 +46,8 @@ function clearStoredUser() {
 
 	localStorage.removeItem("username");
 	localStorage.removeItem("permissions");
+	localStorage.removeItem("permissionList");
+	localStorage.removeItem("doctorId");
 }
 
 // 登录成功后记录会话，随后访问受保护路由无需再请求 refresh。

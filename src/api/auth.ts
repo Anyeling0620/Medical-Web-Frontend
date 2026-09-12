@@ -7,6 +7,9 @@ export interface AuthUser {
 	name: string;
 	departmentId: number | null;
 	job: string | null;
+	// 医生账号绑定的 doctor.id（后端取自 mis_user.ref_id，接口规范 §1.2/§6.10）；
+	// 非医生账号为 null，前端据此展示医生工作台入口。
+	doctorId: number | null;
 }
 
 // 登录/刷新成功响应（规范 3.1/3.2）

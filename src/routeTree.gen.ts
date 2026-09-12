@@ -13,11 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as DashboardPatientsIndexRouteImport } from './routes/dashboard/patients/index'
 import { Route as DashboardVisitingDoctorVisitsRouteImport } from './routes/dashboard/visiting/doctor-visits'
 import { Route as DashboardVisitingScheduleRouteImport } from './routes/dashboard/visiting/schedule'
 import { Route as DashboardVisitingVideoConsultationRouteImport } from './routes/dashboard/visiting/video-consultation'
 import { Route as DashboardCatalogDepartmentIndexRouteImport } from './routes/dashboard/catalog/department/index'
 import { Route as DashboardCatalogDepartmentDepartmentIdRouteImport } from './routes/dashboard/catalog/department/$departmentId'
+import { Route as DashboardCatalogSubdepartmentIndexRouteImport } from './routes/dashboard/catalog/subdepartment/index'
 import { Route as DashboardCatalogSubdepartmentSubdepartmentIdRouteImport } from './routes/dashboard/catalog/subdepartment/$subdepartmentId'
 import { Route as DashboardNursingCaregiverIndexRouteImport } from './routes/dashboard/nursing/caregiver/index'
 import { Route as DashboardNursingConsultationFeeIndexRouteImport } from './routes/dashboard/nursing/consultation-fee/index'
@@ -44,6 +46,11 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
   id: '/login/',
   path: '/login/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardPatientsIndexRoute = DashboardPatientsIndexRouteImport.update({
+  id: '/patients/',
+  path: '/patients/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardVisitingDoctorVisitsRoute =
   DashboardVisitingDoctorVisitsRouteImport.update({
@@ -73,6 +80,12 @@ const DashboardCatalogDepartmentDepartmentIdRoute =
   DashboardCatalogDepartmentDepartmentIdRouteImport.update({
     id: '/catalog/department/$departmentId',
     path: '/catalog/department/$departmentId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardCatalogSubdepartmentIndexRoute =
+  DashboardCatalogSubdepartmentIndexRouteImport.update({
+    id: '/catalog/subdepartment/',
+    path: '/catalog/subdepartment/',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
 const DashboardCatalogSubdepartmentSubdepartmentIdRoute =
@@ -120,10 +133,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
+  '/dashboard/patients/': typeof DashboardPatientsIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
   '/dashboard/catalog/subdepartment/$subdepartmentId': typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   '/dashboard/nursing/doctor/$doctorId': typeof DashboardNursingDoctorDoctorIdRoute
   '/dashboard/catalog/department/': typeof DashboardCatalogDepartmentIndexRoute
+  '/dashboard/catalog/subdepartment/': typeof DashboardCatalogSubdepartmentIndexRoute
   '/dashboard/nursing/caregiver/': typeof DashboardNursingCaregiverIndexRoute
   '/dashboard/nursing/consultation-fee/': typeof DashboardNursingConsultationFeeIndexRoute
   '/dashboard/nursing/doctor/': typeof DashboardNursingDoctorIndexRoute
@@ -136,10 +151,12 @@ export interface FileRoutesByTo {
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
+  '/dashboard/patients': typeof DashboardPatientsIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
   '/dashboard/catalog/subdepartment/$subdepartmentId': typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   '/dashboard/nursing/doctor/$doctorId': typeof DashboardNursingDoctorDoctorIdRoute
   '/dashboard/catalog/department': typeof DashboardCatalogDepartmentIndexRoute
+  '/dashboard/catalog/subdepartment': typeof DashboardCatalogSubdepartmentIndexRoute
   '/dashboard/nursing/caregiver': typeof DashboardNursingCaregiverIndexRoute
   '/dashboard/nursing/consultation-fee': typeof DashboardNursingConsultationFeeIndexRoute
   '/dashboard/nursing/doctor': typeof DashboardNursingDoctorIndexRoute
@@ -154,10 +171,12 @@ export interface FileRoutesById {
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
+  '/dashboard/patients/': typeof DashboardPatientsIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
   '/dashboard/catalog/subdepartment/$subdepartmentId': typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   '/dashboard/nursing/doctor/$doctorId': typeof DashboardNursingDoctorDoctorIdRoute
   '/dashboard/catalog/department/': typeof DashboardCatalogDepartmentIndexRoute
+  '/dashboard/catalog/subdepartment/': typeof DashboardCatalogSubdepartmentIndexRoute
   '/dashboard/nursing/caregiver/': typeof DashboardNursingCaregiverIndexRoute
   '/dashboard/nursing/consultation-fee/': typeof DashboardNursingConsultationFeeIndexRoute
   '/dashboard/nursing/doctor/': typeof DashboardNursingDoctorIndexRoute
@@ -173,10 +192,12 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/doctor-visits'
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
+    | '/dashboard/patients/'
     | '/dashboard/catalog/department/$departmentId'
     | '/dashboard/catalog/subdepartment/$subdepartmentId'
     | '/dashboard/nursing/doctor/$doctorId'
     | '/dashboard/catalog/department/'
+    | '/dashboard/catalog/subdepartment/'
     | '/dashboard/nursing/caregiver/'
     | '/dashboard/nursing/consultation-fee/'
     | '/dashboard/nursing/doctor/'
@@ -189,10 +210,12 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/doctor-visits'
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
+    | '/dashboard/patients'
     | '/dashboard/catalog/department/$departmentId'
     | '/dashboard/catalog/subdepartment/$subdepartmentId'
     | '/dashboard/nursing/doctor/$doctorId'
     | '/dashboard/catalog/department'
+    | '/dashboard/catalog/subdepartment'
     | '/dashboard/nursing/caregiver'
     | '/dashboard/nursing/consultation-fee'
     | '/dashboard/nursing/doctor'
@@ -206,10 +229,12 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/doctor-visits'
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
+    | '/dashboard/patients/'
     | '/dashboard/catalog/department/$departmentId'
     | '/dashboard/catalog/subdepartment/$subdepartmentId'
     | '/dashboard/nursing/doctor/$doctorId'
     | '/dashboard/catalog/department/'
+    | '/dashboard/catalog/subdepartment/'
     | '/dashboard/nursing/caregiver/'
     | '/dashboard/nursing/consultation-fee/'
     | '/dashboard/nursing/doctor/'
@@ -252,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/patients/': {
+      id: '/dashboard/patients/'
+      path: '/patients'
+      fullPath: '/dashboard/patients/'
+      preLoaderRoute: typeof DashboardPatientsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/visiting/doctor-visits': {
       id: '/dashboard/visiting/doctor-visits'
       path: '/visiting/doctor-visits'
@@ -285,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/catalog/department/$departmentId'
       fullPath: '/dashboard/catalog/department/$departmentId'
       preLoaderRoute: typeof DashboardCatalogDepartmentDepartmentIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/catalog/subdepartment/': {
+      id: '/dashboard/catalog/subdepartment/'
+      path: '/catalog/subdepartment'
+      fullPath: '/dashboard/catalog/subdepartment/'
+      preLoaderRoute: typeof DashboardCatalogSubdepartmentIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/catalog/subdepartment/$subdepartmentId': {
@@ -337,10 +376,12 @@ interface DashboardRouteRouteChildren {
   DashboardVisitingDoctorVisitsRoute: typeof DashboardVisitingDoctorVisitsRoute
   DashboardVisitingScheduleRoute: typeof DashboardVisitingScheduleRoute
   DashboardVisitingVideoConsultationRoute: typeof DashboardVisitingVideoConsultationRoute
+  DashboardPatientsIndexRoute: typeof DashboardPatientsIndexRoute
   DashboardCatalogDepartmentDepartmentIdRoute: typeof DashboardCatalogDepartmentDepartmentIdRoute
   DashboardCatalogSubdepartmentSubdepartmentIdRoute: typeof DashboardCatalogSubdepartmentSubdepartmentIdRoute
   DashboardNursingDoctorDoctorIdRoute: typeof DashboardNursingDoctorDoctorIdRoute
   DashboardCatalogDepartmentIndexRoute: typeof DashboardCatalogDepartmentIndexRoute
+  DashboardCatalogSubdepartmentIndexRoute: typeof DashboardCatalogSubdepartmentIndexRoute
   DashboardNursingCaregiverIndexRoute: typeof DashboardNursingCaregiverIndexRoute
   DashboardNursingConsultationFeeIndexRoute: typeof DashboardNursingConsultationFeeIndexRoute
   DashboardNursingDoctorIndexRoute: typeof DashboardNursingDoctorIndexRoute
@@ -353,12 +394,15 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardVisitingScheduleRoute: DashboardVisitingScheduleRoute,
   DashboardVisitingVideoConsultationRoute:
     DashboardVisitingVideoConsultationRoute,
+  DashboardPatientsIndexRoute: DashboardPatientsIndexRoute,
   DashboardCatalogDepartmentDepartmentIdRoute:
     DashboardCatalogDepartmentDepartmentIdRoute,
   DashboardCatalogSubdepartmentSubdepartmentIdRoute:
     DashboardCatalogSubdepartmentSubdepartmentIdRoute,
   DashboardNursingDoctorDoctorIdRoute: DashboardNursingDoctorDoctorIdRoute,
   DashboardCatalogDepartmentIndexRoute: DashboardCatalogDepartmentIndexRoute,
+  DashboardCatalogSubdepartmentIndexRoute:
+    DashboardCatalogSubdepartmentIndexRoute,
   DashboardNursingCaregiverIndexRoute: DashboardNursingCaregiverIndexRoute,
   DashboardNursingConsultationFeeIndexRoute:
     DashboardNursingConsultationFeeIndexRoute,
