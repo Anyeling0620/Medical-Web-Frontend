@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Info, Search } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import {
@@ -93,7 +93,7 @@ function DoctorPatientsPage() {
 					</span>
 				</section>
 
-				{/* 列表区 */}
+				{/* 列表区：每行的「病历」入口跳转到病历管理页，并自动按该患者的 patientCardId 预填筛选 */}
 				<section className="overflow-hidden border border-slate-200 bg-white shadow-sm">
 					<div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
 						<span className="text-sm font-medium text-slate-700">患者信息</span>
@@ -113,21 +113,22 @@ function DoctorPatientsPage() {
 									<th className="px-4 py-3">最近就诊</th>
 									<th className="px-4 py-3">最近支付状态</th>
 									<th className="px-4 py-3">病史</th>
+									<th className="px-4 py-3">操作</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-slate-100">
 								{patientsQuery.isLoading && (
-									<TableMessage colSpan={9}>正在加载患者列表...</TableMessage>
+									<TableMessage colSpan={10}>正在加载患者列表...</TableMessage>
 								)}
 								{patientsQuery.isError && (
-									<TableMessage colSpan={9} tone="error">
+									<TableMessage colSpan={10} tone="error">
 										{getApiErrorMessage(patientsQuery.error)}
 									</TableMessage>
 								)}
 								{!patientsQuery.isLoading &&
 									!patientsQuery.isError &&
 									patients.length === 0 && (
-										<TableMessage colSpan={9}>
+										<TableMessage colSpan={10}>
 											{keyword ? "没有匹配的患者" : "暂无患者数据"}
 										</TableMessage>
 									)}
@@ -180,6 +181,16 @@ function DoctorPatientsPage() {
 												) : (
 													<span className="text-slate-400">-</span>
 												)}
+											</td>
+											<td className="px-4 py-3">
+												{/* 跳转到病历管理页，并由 search 自动按该患者筛选 */}
+												<Link
+													to="/dashboard/medical-records"
+													search={{ patientCardId: patient.patientCardId }}
+													className="text-blue-600 transition hover:text-blue-700 hover:underline"
+												>
+													病历
+												</Link>
 											</td>
 										</tr>
 									);

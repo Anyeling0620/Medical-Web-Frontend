@@ -3,6 +3,7 @@ import {
 	Building2,
 	CalendarDays,
 	ChevronDown,
+	ClipboardList,
 	LayoutDashboard,
 	type LucideIcon,
 	Settings,
@@ -31,6 +32,7 @@ const MENU_ICONS: Record<MenuIconKey, LucideIcon> = {
 	doctor: Stethoscope,
 	calendar: CalendarDays,
 	patients: Users,
+	records: ClipboardList,
 	settings: Settings,
 };
 

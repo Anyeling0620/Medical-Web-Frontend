@@ -22,6 +22,7 @@ export type MenuIconKey =
 	| "doctor"
 	| "calendar"
 	| "patients"
+	| "records"
 	| "settings";
 
 // 父菜单项。
@@ -59,6 +60,7 @@ export interface MenuViewer {
 // 其子项按业务归属移动到组织管理下。医护管理、出诊管理的入口与跳转路径保持原有行为不变；
 // 「系统设置」改为不含子菜单的父菜单，点击后直接进入 /dashboard/setting
 // （页面内提供修改头像、修改名称与退出登录）。
+// 「病历管理」是医生专属入口（契约 §13.1），排在「我的患者」之后、「系统设置」之前。
 export const navigationMenu: MenuDefinition[] = [
 	{
 		id: "dashboard",
@@ -138,6 +140,19 @@ export const navigationMenu: MenuDefinition[] = [
 		to: "/dashboard/patients",
 		doctorOnly: true,
 		permissions: ["REGISTRATION:SELECT"],
+	},
+	{
+		id: "records",
+		icon: "records",
+		label: "病历管理",
+		// 医生专属入口：病历域只服务绑定了医生身份的账号（契约 §13.1），
+		// 未绑定 mis_user.ref_id 的账号（含 ROOT）一律 403，所以必须用 doctorOnly 挡掉管理员，
+		// 避免展示必然打开失败的入口——与「我的患者」同一口径。
+		// isMenuVisible 的判定顺序是「先 doctorOnly，再 ROOT，最后权限编码」，
+		// doctorOnly 优先于 ROOT 放行，因此 ROOT 账号看不到该入口。
+		to: "/dashboard/medical-records",
+		doctorOnly: true,
+		permissions: ["MEDICAL_RECORD:SELECT"],
 	},
 	{
 		id: "setting",

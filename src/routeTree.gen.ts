@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
+import { Route as DashboardMedicalRecordsIndexRouteImport } from './routes/dashboard/medical-records/index'
 import { Route as DashboardPatientsIndexRouteImport } from './routes/dashboard/patients/index'
 import { Route as DashboardSettingIndexRouteImport } from './routes/dashboard/setting/index'
 import { Route as DashboardVisitingDoctorVisitsRouteImport } from './routes/dashboard/visiting/doctor-visits'
@@ -48,6 +49,12 @@ const LoginIndexRoute = LoginIndexRouteImport.update({
   path: '/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardMedicalRecordsIndexRoute =
+  DashboardMedicalRecordsIndexRouteImport.update({
+    id: '/medical-records/',
+    path: '/medical-records/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardPatientsIndexRoute = DashboardPatientsIndexRouteImport.update({
   id: '/patients/',
   path: '/patients/',
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
+  '/dashboard/medical-records/': typeof DashboardMedicalRecordsIndexRoute
   '/dashboard/patients/': typeof DashboardPatientsIndexRoute
   '/dashboard/setting/': typeof DashboardSettingIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesByTo {
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
+  '/dashboard/medical-records': typeof DashboardMedicalRecordsIndexRoute
   '/dashboard/patients': typeof DashboardPatientsIndexRoute
   '/dashboard/setting': typeof DashboardSettingIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/dashboard/visiting/doctor-visits': typeof DashboardVisitingDoctorVisitsRoute
   '/dashboard/visiting/schedule': typeof DashboardVisitingScheduleRoute
   '/dashboard/visiting/video-consultation': typeof DashboardVisitingVideoConsultationRoute
+  '/dashboard/medical-records/': typeof DashboardMedicalRecordsIndexRoute
   '/dashboard/patients/': typeof DashboardPatientsIndexRoute
   '/dashboard/setting/': typeof DashboardSettingIndexRoute
   '/dashboard/catalog/department/$departmentId': typeof DashboardCatalogDepartmentDepartmentIdRoute
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/doctor-visits'
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
+    | '/dashboard/medical-records/'
     | '/dashboard/patients/'
     | '/dashboard/setting/'
     | '/dashboard/catalog/department/$departmentId'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/doctor-visits'
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
+    | '/dashboard/medical-records'
     | '/dashboard/patients'
     | '/dashboard/setting'
     | '/dashboard/catalog/department/$departmentId'
@@ -240,6 +252,7 @@ export interface FileRouteTypes {
     | '/dashboard/visiting/doctor-visits'
     | '/dashboard/visiting/schedule'
     | '/dashboard/visiting/video-consultation'
+    | '/dashboard/medical-records/'
     | '/dashboard/patients/'
     | '/dashboard/setting/'
     | '/dashboard/catalog/department/$departmentId'
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/login/'
       preLoaderRoute: typeof LoginIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/medical-records/': {
+      id: '/dashboard/medical-records/'
+      path: '/medical-records'
+      fullPath: '/dashboard/medical-records/'
+      preLoaderRoute: typeof DashboardMedicalRecordsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/patients/': {
       id: '/dashboard/patients/'
@@ -395,6 +415,7 @@ interface DashboardRouteRouteChildren {
   DashboardVisitingDoctorVisitsRoute: typeof DashboardVisitingDoctorVisitsRoute
   DashboardVisitingScheduleRoute: typeof DashboardVisitingScheduleRoute
   DashboardVisitingVideoConsultationRoute: typeof DashboardVisitingVideoConsultationRoute
+  DashboardMedicalRecordsIndexRoute: typeof DashboardMedicalRecordsIndexRoute
   DashboardPatientsIndexRoute: typeof DashboardPatientsIndexRoute
   DashboardSettingIndexRoute: typeof DashboardSettingIndexRoute
   DashboardCatalogDepartmentDepartmentIdRoute: typeof DashboardCatalogDepartmentDepartmentIdRoute
@@ -414,6 +435,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardVisitingScheduleRoute: DashboardVisitingScheduleRoute,
   DashboardVisitingVideoConsultationRoute:
     DashboardVisitingVideoConsultationRoute,
+  DashboardMedicalRecordsIndexRoute: DashboardMedicalRecordsIndexRoute,
   DashboardPatientsIndexRoute: DashboardPatientsIndexRoute,
   DashboardSettingIndexRoute: DashboardSettingIndexRoute,
   DashboardCatalogDepartmentDepartmentIdRoute:

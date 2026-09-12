@@ -35,8 +35,9 @@ const ROOT_VIEWER: MenuViewer = {
 };
 
 // 数据库「医生」角色真实持有的权限码（mis_role_permission 中该角色的授权结果）。
-// 父菜单不按权限收敛，这些权限码只影响「我的患者」入口：医生持有
-// REGISTRATION:SELECT，因此能看到该医生专属入口。
+// 父菜单不按权限收敛，这些权限码只影响医生专属入口：医生持有 REGISTRATION:SELECT
+// 与 MEDICAL_RECORD:SELECT（契约 §13.3 已授权给 role_id=1 的「医生」角色），
+// 因此能看到「我的患者」与「病历管理」。
 const DOCTOR_PERMISSION_CODES = [
 	"MIS_USER:SELECT",
 	"DEPT:SELECT",
@@ -44,6 +45,7 @@ const DOCTOR_PERMISSION_CODES = [
 	"MEDICAL_DEPT_SUB:SELECT",
 	"SCHEDULE:SELECT",
 	"REGISTRATION:SELECT",
+	"MEDICAL_RECORD:SELECT",
 ] as const;
 
 // 医生账号：isDoctor 为 true，permissions 取上面的真实权限码。
@@ -61,7 +63,7 @@ const PLAIN_VIEWER: MenuViewer = {
 };
 
 // 非医生账号可见的父菜单：父菜单可见性与 main 一致（不按权限收敛），
-// 「我的患者」因 doctorOnly 而不可见。
+// 「我的患者」「病历管理」因 doctorOnly 而不可见。
 const NON_DOCTOR_MENU_IDS = [
 	"dashboard",
 	"organization",
@@ -141,6 +143,25 @@ describe("菜单结构", () => {
 		);
 	});
 
+	test("「病历管理」是医生专属入口，位置在「我的患者」之后、「系统设置」之前", () => {
+		const records = findMenu("records");
+		assert.strictEqual(records.label, "病历管理");
+		assert.strictEqual(records.to, "/dashboard/medical-records");
+		assert.strictEqual(records.icon, "records");
+		// 无子菜单（undefined 而非空数组）：Sidebar 按 submenu 是否存在决定渲染成
+		// 可展开父菜单还是可点击入口。
+		assert.strictEqual(records.submenu, undefined);
+		// 可见性口径与「我的患者」一致：doctorOnly 挡掉管理员，权限码做二次收敛。
+		assert.strictEqual(records.doctorOnly, true);
+		assert.deepStrictEqual(records.permissions, ["MEDICAL_RECORD:SELECT"]);
+		// 位置断言按 id 序列做整体比较，避免菜单顺序被后续改动悄悄挪走。
+		const order = navigationMenu.map((item) => item.id);
+		assert.deepStrictEqual(
+			order.slice(order.indexOf("records") - 1, order.indexOf("records") + 2),
+			["patients", "records", "setting"],
+		);
+	});
+
 	test("「系统设置」父菜单不含子菜单，点击后直接进入 /dashboard/setting", () => {
 		const setting = findMenu("setting");
 		assert.strictEqual(setting.label, "系统设置");
@@ -153,7 +174,7 @@ describe("菜单结构", () => {
 });
 
 describe("菜单可见性 - ROOT 账号", () => {
-	test("ROOT 可见所有非医生专属菜单，但不包含「我的患者」", () => {
+	test("ROOT 可见所有非医生专属菜单，但不包含「我的患者」「病历管理」", () => {
 		const ids = visibleIds(ROOT_VIEWER);
 		assert.deepStrictEqual(ids, [
 			"dashboard",
@@ -168,21 +189,53 @@ describe("菜单可见性 - ROOT 账号", () => {
 			false,
 			"doctorOnly 必须优先于 ROOT 兜底，ROOT 不应看到「我的患者」",
 		);
+		// 病历域同样按未绑定医生身份处理（契约 §13.1：ROOT 的 ref_id 为空也返回 403）。
+		assert.strictEqual(
+			ids.includes("records"),
+			false,
+			"doctorOnly 必须优先于 ROOT 兜底，ROOT 不应看到「病历管理」",
+		);
+	});
+
+	test("ROOT 即使持有 MEDICAL_RECORD:SELECT 也看不到「病历管理」", () => {
+		const viewer: MenuViewer = {
+			isRoot: true,
+			permissions: ["ROOT", "MEDICAL_RECORD:SELECT"],
+			isDoctor: false,
+		};
+		const ids = visibleIds(viewer);
+		assert.strictEqual(ids.includes("records"), false);
+		assert.strictEqual(ids.includes("patients"), false);
 	});
 });
 
 describe("菜单可见性 - 医生账号", () => {
-	test("医生可见全部父菜单，并额外看到医生专属的「我的患者」", () => {
-		// 父菜单可见性与 main 保持一致；「我的患者」只受 doctorOnly 约束，
-		// 后端仍会对该接口校验访问令牌与 REGISTRATION:SELECT。
+	test("医生可见全部父菜单，并额外看到医生专属的「我的患者」与「病历管理」", () => {
+		// 父菜单可见性与 main 保持一致；两个医生专属入口只受 doctorOnly 约束，
+		// 后端仍会分别校验访问令牌与 REGISTRATION:SELECT / MEDICAL_RECORD:SELECT。
 		assert.deepStrictEqual(visibleIds(DOCTOR_VIEWER), [
 			"dashboard",
 			"organization",
 			"nursing",
 			"visiting",
 			"patients",
+			"records",
 			"setting",
 		]);
+	});
+
+	test("医生账号缺少 MEDICAL_RECORD:SELECT 时看不到「病历管理」", () => {
+		// 与「我的患者」同口径：doctorOnly 只表示「仅医生可见」，
+		// 仍需命中权限编码，权限未授权时不应展示必然 403 的入口。
+		const viewer: MenuViewer = {
+			isRoot: false,
+			isDoctor: true,
+			permissions: ["REGISTRATION:SELECT"],
+		};
+		const ids = visibleIds(viewer);
+		assert.strictEqual(ids.includes("records"), false);
+		// 同一账号仍持有 REGISTRATION:SELECT，因此「我的患者」不受影响。
+		assert.strictEqual(ids.includes("patients"), true);
 	});
 
 	test("医生账号缺少 REGISTRATION:SELECT 时仍看不到「我的患者」", () => {
@@ -201,11 +254,11 @@ describe("菜单可见性 - 医生账号", () => {
 
 describe("菜单可见性 - 普通账号与部分权限", () => {
 	test("无任何权限的普通账号可见所有非医生专属菜单", () => {
-		// 只有「我的患者」声明了 permissions + doctorOnly；其余父菜单不按权限收敛。
+		// 只有「我的患者」「病历管理」声明了 permissions + doctorOnly；其余父菜单不按权限收敛。
 		const menusWithPermissions = navigationMenu
 			.filter((item) => (item.permissions?.length ?? 0) > 0)
 			.map((item) => item.id);
-		assert.deepStrictEqual(menusWithPermissions, ["patients"]);
+		assert.deepStrictEqual(menusWithPermissions, ["patients", "records"]);
 		assert.deepStrictEqual(visibleIds(PLAIN_VIEWER), NON_DOCTOR_MENU_IDS);
 	});
 
@@ -230,6 +283,15 @@ describe("菜单可见性 - 普通账号与部分权限", () => {
 		};
 		assert.strictEqual(visibleIds(viewer).includes("patients"), false);
 	});
+
+	test("非医生账号即使持有 MEDICAL_RECORD:SELECT 也看不到「病历管理」", () => {
+		const viewer: MenuViewer = {
+			isRoot: false,
+			isDoctor: false,
+			permissions: ["MEDICAL_RECORD:SELECT"],
+		};
+		assert.strictEqual(visibleIds(viewer).includes("records"), false);
+	});
 });
 
 describe("visibleMenuItems 顺序", () => {
@@ -242,6 +304,7 @@ describe("visibleMenuItems 顺序", () => {
 			"nursing",
 			"visiting",
 			"patients",
+			"records",
 			"setting",
 		]);
 
@@ -276,11 +339,12 @@ describe("跳转路径有效性", () => {
 				["nursing", 4],
 				["visiting", 3],
 				["patients", 0],
+				["records", 0],
 				["setting", 0],
 			],
 		);
-		// 3 个父菜单自身跳转（首页、我的患者、系统设置）+ 9 个子菜单项跳转。
-		assert.strictEqual(links.length, 12);
+		// 4 个父菜单自身跳转（首页、我的患者、病历管理、系统设置）+ 9 个子菜单项跳转。
+		assert.strictEqual(links.length, 13);
 
 		for (const link of links) {
 			if (ROUTE_FILE_WHITELIST.has(link.to)) continue;
@@ -292,7 +356,7 @@ describe("跳转路径有效性", () => {
 		}
 	});
 
-	test("关键路径解析到预期文件（含科室/子科室/我的患者/系统设置）", () => {
+	test("关键路径解析到预期文件（含科室/子科室/我的患者/病历管理/系统设置）", () => {
 		const expectedFiles = new Map<string, string>([
 			["/dashboard", "dashboard/index.tsx"],
 			[
@@ -320,6 +384,7 @@ describe("跳转路径有效性", () => {
 				"dashboard/visiting/video-consultation.tsx",
 			],
 			["/dashboard/patients", "dashboard/patients/index.tsx"],
+			["/dashboard/medical-records", "dashboard/medical-records/index.tsx"],
 			["/dashboard/setting", "dashboard/setting/index.tsx"],
 		]);
 
