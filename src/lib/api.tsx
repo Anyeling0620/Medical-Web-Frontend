@@ -8,7 +8,10 @@ import { ApiError, type ApiErrorBody } from "./api-error";
 
 // 后端接口与 MinIO 的连接配置，通过 Vite 环境变量注入。
 export const apiConfig = {
-	baseURL: import.meta.env.VITE_BASE_URL ?? "http://localhost:8080",
+	// 留空即走同源相对路径：浏览器请求 /api/v1/*，由开发代理或线上 nginx 转发到后端。
+	// 这里刻意不写任何绝对地址——CI 构建时仓库里没有被忽略的 .env，
+	// 一旦写死成 http://localhost:8080，线上页面的所有接口都会打到访问者自己的本机。
+	baseURL: import.meta.env.VITE_BASE_URL ?? "",
 	minioURL: import.meta.env.VITE_MINIO_URL ?? "",
 	minioBucket: import.meta.env.VITE_MINIO_BUCKET ?? "",
 };
