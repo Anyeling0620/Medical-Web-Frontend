@@ -35,6 +35,10 @@ const config = defineConfig({
     tanstackStart({
       spa: {
         enabled: true,
+        prerender: {
+          retryCount: 3,
+          retryDelay: 1000,
+        },
       },
     }),
     viteReact(),
