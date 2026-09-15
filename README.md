@@ -38,7 +38,7 @@ npm run dev            # http://localhost:3000
 ### 4. 构建与发布
 
 ```bash
-npm run check          # Biome 检查
+npm run check          # Biome 检查（Windows 上若报一堆行尾差异，见调试一节）
 npm run build          # 产物在 dist/client/：_shell.html + assets/，没有 index.html
 rsync -a --delete dist/client/ /var/www/medical-web/    # 同步到 nginx 站点根目录
 ```
@@ -69,4 +69,5 @@ nginx 侧三个必须项（完整配置见 `../Medical-Web-Backend/deploy/nginx.
 | 静态资源 404 却返回了 HTML | `/assets/` 少配 `try_files $uri =404`，被 SPA 回退接管了 |
 | 医生照片不显示 | `VITE_MINIO_URL` / `VITE_MINIO_BUCKET` 与后端 `MINIO_*` 不一致，或桶未开公开读 |
 | 本地直连后端跨域失败 | 后端 CORS 只放行带端口的 `Origin`，且允许的请求头不含 `X-Request-Id`；优先用 dev 代理，不要改成绝对地址 |
+| `npm run check` 报大量 error，内容却都是缩进/换行 | 全是行尾差异：仓库没有 `.gitattributes`，Windows 下 `core.autocrlf=true` 会把工作区检成 CRLF，而 Biome 默认按 LF 判定（`git ls-files --eol` 可见 `w/crlf`）。把 `core.autocrlf` 设成 `false` 后重新检出即可，不是代码问题 |
 | 构建报 Node 版本错误 | 升级到 Node 20.19+ / 22.12+ |
