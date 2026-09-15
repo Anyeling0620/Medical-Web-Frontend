@@ -28,7 +28,7 @@
 ### 3. 本地开发
 
 ```bash
-npm install
+npm install            # 仓库同时提交了 package-lock.json 与 pnpm-lock.yaml，用 pnpm install 亦可，但不要在同一份 node_modules 上混装
 npm run dev            # http://localhost:3000
 ```
 
