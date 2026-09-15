@@ -176,10 +176,10 @@ function LoginPage() {
 			</div>
 
 			{/* 登录卡片下方的作者作品集入口：仅作展示，不参与任何登录逻辑 */}
-			<p className="mt-4 text-center text-xs text-slate-400">
+			<p className="mt-4 text-center text-md text-slate-400">
 				个人作品集:{" "}
 				<a
-					className="text-slate-500 underline decoration-dotted underline-offset-2 transition hover:text-blue-600"
+					className="text-slate-500 underline decoration-dotted underline-offset-2 transition hover:text-blue-600 text-md"
 					href="https://jxutcm.top"
 					target="_blank"
 					rel="noreferrer"
