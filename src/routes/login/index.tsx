@@ -95,7 +95,7 @@ function LoginPage() {
 	}
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+		<div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 px-4">
 			<div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
 				<h1 className="text-lg font-semibold text-slate-900">
 					医疗系统管理面板
@@ -174,6 +174,19 @@ function LoginPage() {
 					<p className="mt-2 text-xs text-slate-400">{GUEST_ACCOUNT_NOTICE}</p>
 				</div>
 			</div>
+
+			{/* 登录卡片下方的作者作品集入口：仅作展示，不参与任何登录逻辑 */}
+			<p className="mt-4 text-center text-xs text-slate-400">
+				个人作品集:{" "}
+				<a
+					className="text-slate-500 underline decoration-dotted underline-offset-2 transition hover:text-blue-600"
+					href="https://jxutcm.top"
+					target="_blank"
+					rel="noreferrer"
+				>
+					jxutcm.top
+				</a>
+			</p>
 		</div>
 	);
 }
