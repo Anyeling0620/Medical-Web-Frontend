@@ -1,10 +1,5 @@
 # Medical-Web-Frontend
 
-医院管理端（React 19 + TanStack Start）。构建产物是纯静态 SPA，接口全部来自统一 Go 后端，
-契约见 [spec/04-api-contract.md](../spec/04-api-contract.md)。
-
-本文只讲两件事：**怎么部署**、**出问题怎么查**。
-
 ## 部署
 
 ### 1. 前置条件
